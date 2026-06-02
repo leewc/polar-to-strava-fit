@@ -36,6 +36,16 @@ describe('parsePolarJson', () => {
     expect(values).toEqual([null, null, null])
   })
 
+  it('parses quoted "NaN" string tokens (the form Polar bulk export actually uses)', () => {
+    // The real Polar export emits "NaN" as a quoted string inside numeric
+    // values arrays — not a bare NaN token. Both forms must normalise to null.
+    const text =
+      '{"identifier":{"id":"x"},"startTime":"2024-01-01T00:00:00","exercises":[{"identifier":{"id":"e"},"startTime":"2024-01-01T00:00:00","stopTime":"2024-01-01T00:01:00","durationMillis":60000,"sport":{"id":"1"},"samples":{"samples":[{"type":"HEART_RATE","intervalMillis":1000,"values":["NaN", "NaN", 83.0, "NaN"]}]}}]}'
+    const parsed = parsePolarJson(text)
+    const values = parsed.exercises[0].samples!.samples[0].values
+    expect(values).toEqual([null, null, 83, null])
+  })
+
   it('parses mixed NaN/number values correctly', () => {
     const text =
       '{"identifier":{"id":"x"},"startTime":"2024-01-01T00:00:00","exercises":[{"identifier":{"id":"e"},"startTime":"2024-01-01T00:00:00","stopTime":"2024-01-01T00:01:00","durationMillis":60000,"sport":{"id":"1"},"samples":{"samples":[{"type":"HEART_RATE","intervalMillis":1000,"values":[83.0, NaN, 87.0, NaN, 90.0]}]}}]}'
