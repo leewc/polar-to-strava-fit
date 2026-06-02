@@ -12,6 +12,21 @@ import type { PolarExercise, PolarSample, PolarSession, PolarWayPoint } from './
 type WriteMesg = (mesg: Record<string, unknown>) => void
 
 /**
+ * Optional behavior modifiers for `polarToFit`.
+ *
+ *  - `cropSuspectGps`: when `true`, drop GPS waypoints whose haversine gap
+ *    from the previous kept waypoint exceeds `cropThresholdMeters`. Used to
+ *    paper over single-second sensor "teleports" that make Strava flag the
+ *    activity as "GPS had a bad day". Default `false` — the converter is
+ *    byte-faithful to the source unless callers opt in.
+ *  - `cropThresholdMeters`: per-jump distance threshold (m). Default 500.
+ */
+export interface PolarToFitOptions {
+  cropSuspectGps?: boolean
+  cropThresholdMeters?: number
+}
+
+/**
  * Convert a parsed Polar bulk-export training session to a FIT Activity file.
  *
  * Pure: no I/O, no globals, deterministic for a given input. Runs identically
@@ -20,8 +35,20 @@ type WriteMesg = (mesg: Record<string, unknown>) => void
  * Produces the canonical 8-message Activity layout (file_id → device_info →
  * event(start) → record* → event(stop) → lap → session → activity), suitable
  * for direct upload to Strava.
+ *
+ * Optional `opts` enables a GPS-crop pre-pass (off by default). When omitted
+ * the output is byte-identical to previous versions.
  */
-export function polarToFit(session: PolarSession): Uint8Array {
+export function polarToFit(
+  session: PolarSession,
+  opts: PolarToFitOptions = {},
+): Uint8Array {
+  if (opts.cropSuspectGps) {
+    session = cropSuspectGpsWaypoints(
+      session,
+      opts.cropThresholdMeters ?? DEFAULT_CROP_THRESHOLD_METERS,
+    )
+  }
   const ex = pickPrimaryExercise(session)
   const tzOffsetMin = session.timezoneOffsetMinutes
   const startUtc = polarLocalToUtcDate(session.startTime, tzOffsetMin)
@@ -141,6 +168,83 @@ export function polarToFit(session: PolarSession): Uint8Array {
 
 /** FIT epoch (1989-12-31T00:00:00Z) as seconds-since-Unix-epoch. */
 const FIT_EPOCH_OFFSET_S = 631_065_600
+
+/** Default jump threshold for the optional `cropSuspectGps` pre-pass. */
+const DEFAULT_CROP_THRESHOLD_METERS = 500
+
+/**
+ * Return a copy of `session` with route waypoints whose haversine gap from
+ * the previous kept waypoint exceeds `thresholdMeters` removed. Each
+ * exercise's `routes.route.wayPoints` is filtered independently. Sessions
+ * with no GPS, or with fewer than two waypoints, return unchanged.
+ *
+ * The pre-pass walks linearly with a "last kept" cursor so a single
+ * teleport drops just the one offending waypoint, not the entire tail.
+ * Sample arrays are NOT touched — they're indexed by elapsedMillis, not
+ * waypoint position, and the converter's existing within-2s waypoint
+ * matcher gracefully handles the gap.
+ */
+function cropSuspectGpsWaypoints(
+  session: PolarSession,
+  thresholdMeters: number,
+): PolarSession {
+  let modified = false
+  const newExercises = session.exercises.map((ex) => {
+    const route = ex.routes
+    if (!route || !('route' in route) || !route.route?.wayPoints) return ex
+    const wp = route.route.wayPoints
+    if (wp.length < 2) return ex
+
+    const kept: PolarWayPoint[] = [wp[0]]
+    let droppedHere = 0
+    for (let i = 1; i < wp.length; i++) {
+      const prev = kept[kept.length - 1]
+      const cur = wp[i]
+      const gap = haversineMeters(prev.latitude, prev.longitude, cur.latitude, cur.longitude)
+      if (gap > thresholdMeters) {
+        droppedHere++
+        continue
+      }
+      kept.push(cur)
+    }
+    if (droppedHere === 0) return ex
+    modified = true
+    return {
+      ...ex,
+      routes: {
+        ...route,
+        route: {
+          ...route.route,
+          wayPoints: kept,
+        },
+      },
+    }
+  })
+  return modified ? { ...session, exercises: newExercises } : session
+}
+
+/**
+ * Great-circle distance between two lat/lon points (decimal degrees) on a
+ * spherical Earth, in metres. Duplicated from `validate/checks.ts` to keep
+ * the core converter dependency-free.
+ */
+function haversineMeters(
+  lat1Deg: number,
+  lon1Deg: number,
+  lat2Deg: number,
+  lon2Deg: number,
+): number {
+  const R = 6_371_008.8
+  const toRad = (d: number) => (d * Math.PI) / 180
+  const phi1 = toRad(lat1Deg)
+  const phi2 = toRad(lat2Deg)
+  const dPhi = toRad(lat2Deg - lat1Deg)
+  const dLam = toRad(lon2Deg - lon1Deg)
+  const s = Math.sin(dPhi / 2)
+  const t = Math.sin(dLam / 2)
+  const a = s * s + Math.cos(phi1) * Math.cos(phi2) * t * t
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)))
+}
 
 /** A trackpoint payload, ready for `writeMesg({ mesgNum: RECORD, ...rec })`. */
 interface RecordPayload {

@@ -1,5 +1,5 @@
 import { Decoder, Stream } from '@garmin/fitsdk'
-import type { PolarSession } from '@core/types'
+import type { PolarSession, PolarWayPoint } from '@core/types'
 
 /**
  * Round-trip-decoded summary of a FIT activity file. Captures only the
@@ -100,6 +100,38 @@ export interface ValidationReport {
   recordCount: number
   /** Whether the FIT session.sport+subSport matches what sportMap returned. */
   sportMatchesExpected: boolean
+  /**
+   * GPS-quality report for sessions that carry a route. `undefined` when the
+   * source has no GPS waypoints (indoor sessions). See `gpsQualityReport`.
+   */
+  gpsReport?: GpsQualityReport
+}
+
+/**
+ * Per-session GPS-quality summary. Detects "teleport" jumps that look like
+ * sensor glitches — Strava silently flags activities with these as having
+ * "GPS had a bad day" and excludes them from leaderboards.
+ *
+ *  - `pathLengthMeters` is the sum of haversine gaps between consecutive
+ *    waypoints. For a clean run this should track the recorded total
+ *    distance closely.
+ *  - `pathOverDistanceRatio` of 1.0 = clean. >1.2 indicates accumulated GPS
+ *    error or one or more teleports inflating the path length.
+ *  - `severity`: `'clean'` (no jumps over the warn threshold), `'minor'`
+ *    (1-2 small jumps), `'severe'` (any jump over the severe threshold or
+ *    ratio > 1.2).
+ */
+export interface GpsQualityReport {
+  pathLengthMeters: number
+  recordedDistanceMeters?: number
+  pathOverDistanceRatio?: number
+  maxGapMeters: number
+  jumpsOver50m: Array<{
+    waypointIndex: number
+    gapMeters: number
+    elapsedMillis: number
+  }>
+  severity: 'clean' | 'minor' | 'severe'
 }
 
 /** Default tolerances; callers can override per-call if needed. */
@@ -175,6 +207,17 @@ export function conservationReport(
     }
   }
 
+  const gpsReport = gpsQualityReport(polar)
+  if (gpsReport && gpsReport.severity === 'severe') {
+    warnings.push(
+      `gps anomalies (severe): maxGap=${gpsReport.maxGapMeters.toFixed(1)}m, ` +
+        `${gpsReport.jumpsOver50m.length} jump(s)>50m` +
+        (gpsReport.pathOverDistanceRatio !== undefined
+          ? `, path/distance=${gpsReport.pathOverDistanceRatio.toFixed(2)}x`
+          : ''),
+    )
+  }
+
   return {
     ok: warnings.length === 0,
     warnings,
@@ -183,12 +226,122 @@ export function conservationReport(
     durationDeltaSec,
     recordCount: decoded.recordCount,
     sportMatchesExpected,
+    gpsReport,
+  }
+}
+
+/** Default GPS-quality thresholds. */
+export const DEFAULT_GPS_THRESHOLDS = {
+  /** Inter-waypoint gap (m) above which we flag the jump in `jumpsOver50m`. */
+  warnMeters: 50,
+  /** Gap (m) above which a single jump immediately escalates to `'severe'`. */
+  severeMeters: 500,
+  /** path/distance ratio above which the session is flagged `'severe'`. */
+  pathOverDistanceRatioSevere: 1.2,
+} as const
+
+/**
+ * Walk consecutive GPS waypoints and detect "teleport" jumps that indicate
+ * sensor glitches — the kind that make Strava silently exclude an activity
+ * from leaderboards. Pure: input → report. No I/O, no globals.
+ *
+ * Returns `undefined` when the session has no waypoints (e.g. indoor).
+ */
+export function gpsQualityReport(
+  session: PolarSession,
+  thresholds: {
+    warnMeters?: number
+    severeMeters?: number
+    pathOverDistanceRatioSevere?: number
+  } = {},
+): GpsQualityReport | undefined {
+  const warn = thresholds.warnMeters ?? DEFAULT_GPS_THRESHOLDS.warnMeters
+  const severe = thresholds.severeMeters ?? DEFAULT_GPS_THRESHOLDS.severeMeters
+  const ratioSevere =
+    thresholds.pathOverDistanceRatioSevere ??
+    DEFAULT_GPS_THRESHOLDS.pathOverDistanceRatioSevere
+
+  const waypoints = collectWaypoints(session)
+  if (waypoints.length < 2) return undefined
+
+  let pathLength = 0
+  let maxGap = 0
+  const jumps: GpsQualityReport['jumpsOver50m'] = []
+  for (let i = 1; i < waypoints.length; i++) {
+    const a = waypoints[i - 1]
+    const b = waypoints[i]
+    const gap = haversineMeters(a.latitude, a.longitude, b.latitude, b.longitude)
+    pathLength += gap
+    if (gap > maxGap) maxGap = gap
+    if (gap > warn) {
+      jumps.push({
+        waypointIndex: i,
+        gapMeters: gap,
+        elapsedMillis: b.elapsedMillis,
+      })
+    }
+  }
+
+  const recordedDistanceMeters = session.distanceMeters
+  const pathOverDistanceRatio =
+    recordedDistanceMeters !== undefined && recordedDistanceMeters > 0
+      ? pathLength / recordedDistanceMeters
+      : undefined
+
+  let severity: 'clean' | 'minor' | 'severe' = 'clean'
+  if (jumps.length > 0) severity = 'minor'
+  if (maxGap > severe) severity = 'severe'
+  if (pathOverDistanceRatio !== undefined && pathOverDistanceRatio > ratioSevere) {
+    severity = 'severe'
+  }
+
+  return {
+    pathLengthMeters: pathLength,
+    recordedDistanceMeters,
+    pathOverDistanceRatio,
+    maxGapMeters: maxGap,
+    jumpsOver50m: jumps,
+    severity,
   }
 }
 
 // ---------------------------------------------------------------------------
 // internals
 // ---------------------------------------------------------------------------
+
+function collectWaypoints(session: PolarSession): PolarWayPoint[] {
+  const out: PolarWayPoint[] = []
+  for (const ex of session.exercises) {
+    const route = ex.routes
+    if (route && 'route' in route && route.route?.wayPoints) {
+      out.push(...route.route.wayPoints)
+    }
+  }
+  return out
+}
+
+/**
+ * Great-circle distance between two lat/lon points (decimal degrees) on a
+ * spherical Earth, using the haversine formula. Returns metres. The error
+ * vs WGS-84 is well under 0.5% — fine for jump detection.
+ */
+function haversineMeters(
+  lat1Deg: number,
+  lon1Deg: number,
+  lat2Deg: number,
+  lon2Deg: number,
+): number {
+  const R = 6_371_008.8 // mean Earth radius in metres (IUGG)
+  const toRad = (d: number) => (d * Math.PI) / 180
+  const phi1 = toRad(lat1Deg)
+  const phi2 = toRad(lat2Deg)
+  const dPhi = toRad(lat2Deg - lat1Deg)
+  const dLam = toRad(lon2Deg - lon1Deg)
+  const s = Math.sin(dPhi / 2)
+  const t = Math.sin(dLam / 2)
+  const a = s * s + Math.cos(phi1) * Math.cos(phi2) * t * t
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)))
+}
 
 function stringOrUndefined(v: unknown): string | undefined {
   return typeof v === 'string' ? v : undefined

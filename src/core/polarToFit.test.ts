@@ -179,6 +179,120 @@ describe('polarToFit — fixture round-trips', () => {
   })
 })
 
+describe('polarToFit — cropSuspectGps option', () => {
+  /**
+   * Build a synthetic session whose route has a known isolated teleport in
+   * the middle. Steps are 1 metre north each except for a single jumping
+   * waypoint that snaps far north and immediately back — the realistic
+   * "Polar sensor glitch" pattern.
+   */
+  function syntheticSessionWithJump(opts: {
+    preSteps: number
+    jumpMeters: number
+    postSteps: number
+  }): PolarSession {
+    const metersPerDegLat = (6_371_008.8 * Math.PI) / 180
+    let lat = 0
+    let elapsed = 0
+    const wayPoints: any[] = []
+    for (let i = 0; i < opts.preSteps; i++) {
+      elapsed += 1000
+      lat += 1 / metersPerDegLat
+      wayPoints.push({ latitude: lat, longitude: 0, elapsedMillis: elapsed })
+    }
+    // Single isolated jump: snap far north for one waypoint, then return
+    // to the natural progression. This is the shape of a real Polar GPS
+    // glitch — one second of nonsense bracketed by clean fixes.
+    elapsed += 1000
+    const jumpLat = lat + opts.jumpMeters / metersPerDegLat
+    wayPoints.push({ latitude: jumpLat, longitude: 0, elapsedMillis: elapsed })
+    for (let i = 0; i < opts.postSteps; i++) {
+      elapsed += 1000
+      lat += 1 / metersPerDegLat
+      wayPoints.push({ latitude: lat, longitude: 0, elapsedMillis: elapsed })
+    }
+    const totalSteps = opts.preSteps + 1 + opts.postSteps
+    return {
+      identifier: { id: 'crop-test' },
+      name: 'Running',
+      startTime: '2026-01-01T00:00:00',
+      stopTime: '2026-01-01T00:00:00',
+      durationMillis: totalSteps * 1000,
+      timezoneOffsetMinutes: 0,
+      sport: { id: '1' },
+      exercises: [
+        {
+          identifier: { id: 'crop-test-ex' },
+          startTime: '2026-01-01T00:00:00',
+          stopTime: '2026-01-01T00:00:00',
+          durationMillis: totalSteps * 1000,
+          sport: { id: '1' },
+          routes: {
+            route: {
+              wayPoints,
+              startTime: '2026-01-01T00:00:00',
+            },
+          },
+        },
+      ],
+    }
+  }
+
+  it('default behavior (no opts) preserves the suspect waypoint', () => {
+    const session = syntheticSessionWithJump({ preSteps: 5, jumpMeters: 1000, postSteps: 5 })
+    const dec = decode(polarToFit(session))
+    const withGps = dec.records.filter(
+      (r) => r.positionLat !== undefined && r.positionLong !== undefined,
+    )
+    // 11 waypoints attached to records (within the 2s match window).
+    expect(withGps.length).toBe(11)
+  })
+
+  it('cropSuspectGps drops the >threshold waypoint while keeping the rest', () => {
+    const session = syntheticSessionWithJump({ preSteps: 5, jumpMeters: 1000, postSteps: 5 })
+    const cropped = decode(polarToFit(session, { cropSuspectGps: true }))
+    const withGps = cropped.records.filter(
+      (r) => r.positionLat !== undefined && r.positionLong !== undefined,
+    )
+    // The 1000m jump waypoint is dropped → 10 instead of 11. Note the
+    // sample timeline still produces records for every second; only the
+    // GPS attachment goes away for the cropped slot.
+    expect(withGps.length).toBe(10)
+
+    // No two adjacent kept waypoints should differ by more than the
+    // threshold along the latitude axis (roughly).
+    const lats = withGps.map((r) => r.positionLat as number)
+    const SEMI_PER_DEG = 2 ** 31 / 180
+    const metersPerDegLat = (6_371_008.8 * Math.PI) / 180
+    for (let i = 1; i < lats.length; i++) {
+      const dDeg = Math.abs(lats[i] - lats[i - 1]) / SEMI_PER_DEG
+      const dMeters = dDeg * metersPerDegLat
+      expect(dMeters).toBeLessThan(500)
+    }
+  })
+
+  it('respects custom cropThresholdMeters', () => {
+    // 75m jump: above a custom 50m threshold but below the default 500m.
+    const session = syntheticSessionWithJump({ preSteps: 3, jumpMeters: 75, postSteps: 3 })
+
+    // Default threshold (500m) keeps everything.
+    const defaultRun = decode(polarToFit(session, { cropSuspectGps: true }))
+    const defaultWithGps = defaultRun.records.filter(
+      (r) => r.positionLat !== undefined && r.positionLong !== undefined,
+    )
+    expect(defaultWithGps.length).toBe(7)
+
+    // Custom 50m threshold drops the 75m waypoint.
+    const tightRun = decode(
+      polarToFit(session, { cropSuspectGps: true, cropThresholdMeters: 50 }),
+    )
+    const tightWithGps = tightRun.records.filter(
+      (r) => r.positionLat !== undefined && r.positionLong !== undefined,
+    )
+    expect(tightWithGps.length).toBe(6)
+  })
+})
+
 describe('polarToFit — internals', () => {
   it('degreesToSemicircles maps boundaries correctly', () => {
     expect(__test__.degreesToSemicircles(0)).toBe(0)
