@@ -19,6 +19,38 @@ use `/usage` in Claude Code for the authoritative session totals.
 
 *T1 agent token count not reported because the call was rejected before completion.
 
+## Session totals (from `/usage` after T5 commit)
+
+Captured 2026-06-02 immediately after committing T5 + tooling polish.
+This is the authoritative number — sub-agent token counts above don't
+account for caching or main-thread context overhead.
+
+| Metric | Value |
+|---|---|
+| Total cost | **$60.53** |
+| API duration | 1h 17m 33s |
+| Wall-clock duration | 23h 51m 29s |
+| Code changes | +3127 / −720 lines |
+
+**By model:**
+
+| Model | Input | Output | Cache read | Cache write | Cost |
+|---|---:|---:|---:|---:|---:|
+| claude-opus-4-7 | 519.4k | 244.2k | 62.5m | 3.1m | $59.47 |
+| claude-opus-4-6 | 529 | 11.5k | 382.7k | 70.2k | $0.92 |
+| claude-haiku-4-5 | 31 | 1.0k | 395.7k | 73.2k | $0.14 |
+
+Opus 4.7 dominates ($59.47 of $60.53 = 98%) — that's the main-thread model
+plus most sub-agent dispatches. Haiku 4.5 ($0.14) is structured-output
+classification on the failed worktree workflow attempt + similar small calls.
+Cache-read tokens (62.5m on Opus 4.7) reflect heavy reuse of PLAN.md /
+RESEARCH.md across sub-agents; without caching the cost would be roughly
+3–5× higher.
+
+**Phases 0–2 (scaffold + Phase 1 + T5):** ~$60 total. Estimated remaining
+spend through T6, T7-B, Phase 4 fan-out, and deploy: another ~$30–60
+depending on iteration loops.
+
 ## Cost notes
 
 - I (the main-thread Claude) cannot directly read your session-level token total
