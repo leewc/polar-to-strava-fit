@@ -1,0 +1,12 @@
+node_modules/
+dist/
+out/
+*.zip
+.DS_Store
+.vite/
+*.log
+.env
+.env.local
+coverage/
+playwright-report/
+test-results/
