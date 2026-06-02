@@ -108,6 +108,32 @@ describe('polarToFit — fixture round-trips', () => {
     }
   })
 
+  it('enhancedSpeed is in m/s (Polar km/h converted), not raw km/h', () => {
+    // Polar's SPEED stream is km/h; FIT's enhancedSpeed field is m/s. If we
+    // wrote km/h directly Strava would flag the activity as "may be in a
+    // vehicle" because every record looks like 25-40 m/s (90-145 km/h).
+    //
+    // For a session whose mean pace is around 11 min/mi (≈8.7 km/h ≈ 2.4 m/s),
+    // the average enhancedSpeed across all records must be in the 1.5-5 m/s
+    // band — not the 5-15 m/s band that raw km/h would put it in.
+    const dec = decode(polarToFit(runningRecent))
+    const speeds = dec.records
+      .map((r) => r.enhancedSpeed as number | undefined)
+      .filter((v): v is number => typeof v === 'number')
+    expect(speeds.length).toBeGreaterThan(100)
+    const avg = speeds.reduce((a, b) => a + b, 0) / speeds.length
+    expect(avg).toBeGreaterThan(0.5) // not all zeros / dropped
+    expect(avg).toBeLessThan(6) // running pace, not "in a vehicle"
+
+    // Also derive expected average from session totals as a stronger check.
+    const session = runningRecent
+    if (session.distanceMeters !== undefined) {
+      const derivedMs = session.distanceMeters / (session.durationMillis / 1000)
+      // Stream mean should be within 30% of derived (allows for dropouts/noise).
+      expect(Math.abs(avg - derivedMs) / derivedMs).toBeLessThan(0.3)
+    }
+  })
+
   it('Distance conservation within 1% (running-large)', () => {
     const session = runningLarge
     if (session.distanceMeters === undefined) return

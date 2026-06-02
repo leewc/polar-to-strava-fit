@@ -210,7 +210,12 @@ function buildRecords(ex: PolarExercise, startUtc: Date): RecordPayload[] {
     const dist = sampleAt(samples.distance, i)
     if (dist !== null) rec.distance = dist
     const speed = sampleAt(samples.speed, i)
-    if (speed !== null) rec.enhancedSpeed = speed
+    // Polar SPEED is km/h; FIT enhancedSpeed is m/s. Confirmed empirically
+    // against (distanceMeters / durationMillis*1000): the SPEED-stream avg
+    // matches that derived avg only after /3.6. Without this divide, Strava
+    // flags Running activities as "may be in a vehicle" because per-record
+    // m/s values land in 25–40 m/s (90–145 km/h) territory.
+    if (speed !== null) rec.enhancedSpeed = speed / 3.6
     const alt = sampleAt(samples.altitude, i)
     if (alt !== null) rec.enhancedAltitude = alt
     const cad = sampleAt(samples.cadence, i)
