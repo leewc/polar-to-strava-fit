@@ -281,6 +281,49 @@ All four read only this plan + the research file. Independent of each other. Eac
 - **Ordering note:** T7-B (cli-convert) is logically in Phase 4 Track B but is needed by T6.5. The orchestrator should pull T7-B forward to run immediately after T6, then run T6.5, then unblock everything else.
 - **Inputs:** T6, T7-B (early). **Outputs:** user-reported acceptance log; if PASS, the green light to start Phase 4.
 
+### Phase 3.6 — GPS-quality detection (post-T6.5 enhancement)
+
+**T6.6. `gps-quality-warnings`** — runs after T6.5 acceptance, parallel with Phase 4.
+
+Discovered during T6.5 testing on a real export: one session had a single 4.5 km GPS jump in 1 second (a Polar sensor glitch), which Strava flagged as "GPS had a bad day" and refused to put on leaderboards. The converter is correct — the source data has a teleport. We can detect this locally and surface it to the user before they try to upload.
+
+**Detection logic** (extend `src/validate/checks.ts`):
+
+- Walk consecutive GPS records, compute haversine distance between adjacent positions.
+- Flag any inter-record gap exceeding a configurable threshold (default: 50 m, since 1 Hz running tops out around 6 m/s and a 50 m jump in 1 second = 180 km/h).
+- Flag the session overall if the haversine path-length exceeds the recorded `totalDistance` by more than 20% (indicates accumulated GPS error or teleports).
+- Add a new `gpsReport` field to `ValidationReport`:
+  ```ts
+  gpsReport?: {
+    pathLengthMeters: number          // sum of haversine gaps
+    recordedDistanceMeters: number    // session.totalDistance
+    pathOverDistanceRatio: number     // 1.00 = clean; >1.2 = suspicious
+    maxGapMeters: number
+    jumpsOver50m: Array<{recordIndex: number; gapMeters: number; timestamp: string}>
+    severity: 'clean' | 'minor' | 'severe'   // clean: 0 jumps. minor: 1-2 small jumps. severe: any >500m jump or ratio >1.2
+  }
+  ```
+
+**Webapp UX** (incorporate into Track A):
+
+- In the validate stage, GPS-suspicious sessions get a yellow `Alert` showing "GPS anomalies detected — Strava may flag this activity". Severe ones get a red Alert.
+- Per-row "Crop" option: a checkbox/toggle that, when enabled, drops the offending record(s) and re-runs that session's polarToFit. Default OFF (preserve raw data); user opts in.
+- "Crop" implementation: pass a `gpsCropOptions` parameter through `polarToFit(session, opts?)` that filters records before encode. The pure converter stays pure; cropping is just a pre-pass.
+
+**CLI UX**:
+
+- `pnpm validate <out-dir>` prints GPS warnings inline per file.
+- New `pnpm convert --crop-suspect-gps` flag drops jumps >500m at convert time.
+
+**Tests**:
+
+- Add a synthetic fixture with a known teleport (or programmatically inject one into a copy of running-large) and assert detection + severity classification.
+- Assert `gpsCropOptions` removes the bad record and recomputes path length.
+
+**Inputs:** T6 (validation/checks). **Outputs:** extended `src/validate/checks.ts`, optional crop pre-pass in `src/core/polarToFit.ts`, webapp Alert wiring, CLI flag.
+
+**Why this is a separate task and not a hotfix:** the May 23 finding is not a converter bug. The converter is faithful to the source. Detecting source-data quality issues is a *new* feature with its own UX surface (warnings, crop affordance). Keeping it separate keeps T5 focused on byte-correctness.
+
 ### Phase 4 — Two parallel tracks (gated by T6)
 
 These tracks are independent of each other and can run fully in parallel. Track A is the webapp (the deliverable). Track B is the CLI (used for first-light validation, faster to hand-test).
@@ -412,6 +455,8 @@ This is the only protocol the orchestrator needs to wire up multi-agent executio
 
 Reverse-chronological. Captures the "why" behind each choice so we don't re-litigate later.
 
+- **2026-06-02 — Add T6.6 (GPS-quality detection & cropping) as a follow-up enhancement.** During T6.5 testing, a real session had a 4.5 km GPS teleport that triggered Strava's "GPS had a bad day" flag. The converter is correct; the source data is glitched. Detect and warn before upload, with an opt-in crop affordance. *Why a separate task, not a hotfix:* T5/T6 are about byte-faithful conversion. Source-data quality detection is a new feature surface with its own UX (warnings, crop UI). Don't conflate fidelity with curation.
+- **2026-06-02 — Polar SPEED stream is km/h, FIT enhancedSpeed is m/s.** Confirmed empirically (stream mean × 3.6 ≈ 0 vs / 3.6 ≈ derived avg from totals). Initial converter wrote km/h directly; Strava flagged "may be in a vehicle" because per-record speeds looked like 30 km/h. Fix is one line: divide by 3.6 before writing. Distance + duration were already correct; only the per-record speed used by Strava's heuristics was off. Caught at T6.5 acceptance gate.
 - **2026-06-01 — Project name: `polar-to-strava-fit`.** Used as repo name, package name, and GitHub Pages URL slug. *Why:* explicit about both endpoints (Polar source, Strava destination) and the format (FIT). Plain over cute — anyone reading a URL or import path knows immediately what this is.
 - **2026-06-01 — UI: single-page wizard layout.** All five stages stacked on one page; completed stages collapse to a one-line summary, active stage expanded, pending stages dim. Chosen over a multi-step stepper or two-pane manifest+detail. *Why:* the user runs this tool once for a one-time backfill, not repeatedly. A wizard makes the sequence obvious; a stepper adds clicks; a two-pane layout is overkill for 29 sessions.
 - **2026-06-01 — Component library: shadcn-svelte + Tailwind.** Chosen over Skeleton UI, Flowbite, DaisyUI, vanilla Tailwind, or bare bits-ui. *Why:* copy-paste components mean no runtime library dep (smallest bundle), the design language is neutral enough to re-skin later, all needed components (Button, Card, Checkbox, Progress, Badge, Alert, Select) are available, Svelte 5 support is current.
