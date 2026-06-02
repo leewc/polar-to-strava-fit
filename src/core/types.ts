@@ -67,12 +67,15 @@ export interface PolarExercise {
   laps?: { laps?: PolarLap[] } | Record<string, never>
   statistics?: PolarStatistics
   samples?: { samples: PolarSample[] }
-  routes?: {
-    route: {
-      wayPoints: PolarWayPoint[]
-      startTime: string
-    }
-  }
+  /** May be `{}` (no GPS) or `{ route: { wayPoints: [...] } }`. */
+  routes?:
+    | {
+        route: {
+          wayPoints: PolarWayPoint[]
+          startTime: string
+        }
+      }
+    | Record<string, never>
 }
 
 /**
