@@ -119,8 +119,12 @@ describe('webapp/pipeline', () => {
     const allDone = events[events.length - 1]
     if (allDone.kind !== 'all-done') throw new Error('typeguard')
     expect(allDone.sessionCount).toBe(2)
-    // No warnings expected for clean fixtures (within 1% / 1s tolerance).
-    expect(allDone.warningCount).toBe(0)
+    // running-recent contains a known GPS teleport (the May 23 fixture used
+    // during T6.5 acceptance — see PLAN.md decisions log). T6.6's GPS-quality
+    // detection correctly surfaces it as a `severe` warning, so we expect
+    // exactly one warning across the two sessions (indoor: clean, recent:
+    // gps-severe).
+    expect(allDone.warningCount).toBe(1)
 
     const dones = events.filter((e) => e.kind === 'session-done')
     expect(dones).toHaveLength(2)

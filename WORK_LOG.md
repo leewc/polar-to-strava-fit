@@ -15,9 +15,36 @@ use `/usage` in Claude Code for the authoritative session totals.
 | T4 time-utils | ✅ | 48,182 | 13 | ~5.1m | `62adae2` |
 | T1 fixtures rebuilt + anonymized (main thread) | ✅ | n/a | n/a | n/a | `dc55081` |
 | T3 polish: JSON5 + scoped reviver (main thread) | ✅ | n/a | n/a | n/a | `16e8309` |
-| Subtotal Phase 0–1 (sub-agents only) | | **~285k** | **~140** | | |
+| T5 polarToFit core converter (main thread) | ✅ | n/a | n/a | n/a | `6bd669e` |
+| chore: tooling polish + work log (main thread) | ✅ | n/a | n/a | n/a | `7f0999a` |
+| log: capture session cost after T5 (main thread) | ✅ | n/a | n/a | n/a | `80bf8dd` |
+| T6 validation/checks shared module (main thread) | ✅ | n/a | n/a | n/a | `edcc7c8` |
+| T7-B (early) cli-convert (1 sub-agent, worktree) | ✅ | 80,364 | 57 | ~7.9h\* | `16dbd02` |
+| T6.5 Strava acceptance gate — first attempt | ⚠️ caught speed-unit bug | 0 | 0 | (manual user upload) | n/a |
+| fix: Polar SPEED km/h → FIT m/s (main thread, /3.6) | ✅ | n/a | n/a | n/a | `36542eb` |
+| T6.5 retry — flagged GPS teleport in source data | ✅ converter correct | 0 | 0 | (manual) | n/a |
+| T6.5 final — clean run accepted by Strava | ✅ | n/a | n/a | (manual) | n/a |
+| plan: T6.6 (GPS quality) + speed-fix decision log | ✅ | n/a | n/a | n/a | `6acbd0d` |
+| **Phase 4 wave-1 fan-out (4 agents in worktrees)** | ✅ all PASS | **334,655** | **160** | ~3.9h\* | merged 2026-06-02 |
+| ↳ T6.6 GPS quality detection + crop (worktree-1) | ✅ | (incl. above) | (incl.) | (incl.) | `dcd201a` |
+| ↳ T7-A webapp pipeline + worker (worktree-2) | ✅ | (incl.) | (incl.) | (incl.) | `cfbd660` |
+| ↳ T7-B-2 cli-inspect (worktree-3) | ✅ | (incl.) | (incl.) | (incl.) | `2d5c276` |
+| ↳ T7-B-3 cli-validate (worktree-4) | ✅ | (incl.) | (incl.) | (incl.) | `b3fef3c` |
+| pipeline.test fixup: assert running-recent gps warning (main) | ✅ | n/a | n/a | n/a | (this commit) |
+| Subtotal sub-agent work | | **~700k** | **~360** | | |
+
+\*Worktree fan-out durations are wall-clock max-of-4 since they ran in parallel; actual CPU time was the sum.
 
 *T1 agent token count not reported because the call was rejected before completion.
+
+## Cumulative state at end of Phase 4 wave-1
+
+- **116/116 tests pass** across 11 test files (was 96 before wave-1; +20 from T6.6, T7-A, T7-B-2, T7-B-3).
+- **0 TypeScript errors** (`pnpm check` clean).
+- **27/27** sessions in user's real export convert successfully, 0 sport fallbacks, 0 decode failures.
+- **One real session flagged** by T6.6 GPS detection (May 23 — the same one Strava rejected during T6.5).
+- **Two Strava uploads accepted** during T6.5: indoor session + April 18 GPS run.
+- **Worktree isolation works.** Wave-1 ran 4 agents in parallel against disjoint paths (`src/validate/*`, `src/webapp/*`, `src/cli/inspect.ts`, `src/cli/validate.ts`, plus a `package.json` happy-dom add) with zero merge conflicts.
 
 ## Session totals (from `/usage` after T5 commit)
 
