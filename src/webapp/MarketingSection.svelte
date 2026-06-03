@@ -15,13 +15,13 @@
   import { ExternalLink } from 'lucide-svelte'
 
   /**
-   * Estimated AI cost for the project, surfaced in the FAQ. Sourced from
-   * WORK_LOG.md (`/usage` totals) as of 2026-06-03; ~$60 at that point.
+   * AI usage cost surfaced in the FAQ. Sourced from Claude Code's `/usage`
+   * panel as of 2026-06-03 ($229.82 cumulative across the entire project).
    * Kept as a prop with a baked-in default so the value is provable from
-   * source without runtime fetches. Update by hand when WORK_LOG.md is
+   * source without runtime fetches. Update by hand when /usage is
    * refreshed.
    */
-  let { aiCostUsd = '~$60' }: { aiCostUsd?: string } = $props()
+  let { aiCostUsd = '~$230' }: { aiCostUsd?: string } = $props()
 </script>
 
 <section
@@ -137,6 +137,29 @@
               rel="noreferrer">github.com/leewc/polar-to-strava-fit</a
             >. If that's a dealbreaker, don't use this tool — but you can audit
             every line yourself.
+          </p>
+        </div>
+      </details>
+
+      <details class="group rounded-md border bg-muted/20 p-3">
+        <summary class="cursor-pointer font-medium">
+          Wouldn't a manual shell script work better?
+        </summary>
+        <div class="mt-2 space-y-2 text-muted-foreground">
+          <p>
+            Yes. A 200-line Python or Node script could do the same conversion
+            with no UI at all, and that's exactly how this project started — see
+            the <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">src/cli/</code>
+            directory for <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">pnpm convert</code>,
+            <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">pnpm inspect</code>, and
+            <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">pnpm validate</code>.
+          </p>
+          <p>
+            The reason this also exists as a webapp: most people moving from
+            Polar to Strava aren't comfortable cloning a TypeScript repo,
+            installing pnpm, and running CLI commands. The webapp is the same
+            converter behind a drop zone, so non-technical folks have a path
+            too. If you'd rather use the CLI, it's all there in the repo.
           </p>
         </div>
       </details>

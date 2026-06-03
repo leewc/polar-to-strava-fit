@@ -42,8 +42,9 @@ describe('MarketingSection', () => {
     expect(faq?.textContent).toContain('Was AI used in building this?')
     expect(faq?.textContent).toContain('Why FIT instead of TCX or GPX?')
 
-    // Default AI cost is sourced from WORK_LOG.md (~$60 as of 2026-06-03).
-    expect(faq?.textContent).toContain('~$60')
+    // Default AI cost is sourced from Claude Code's /usage panel
+    // ($229.82 as of 2026-06-03).
+    expect(faq?.textContent).toContain('~$230')
 
     // Footer with repo link.
     const footer = target.querySelector('[data-testid="marketing-footer"]')

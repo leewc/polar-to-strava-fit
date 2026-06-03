@@ -63,6 +63,8 @@
     RotateCcw,
     Info,
     Sparkles,
+    HeartPulse,
+    Activity,
   } from 'lucide-svelte'
 
   // ---------------------------------------------------------------------------
@@ -531,7 +533,17 @@
 <main class="mx-auto max-w-3xl p-6 sm:p-10 space-y-6">
   <header class="flex items-start justify-between gap-4">
     <div>
-      <h1 class="text-3xl font-semibold tracking-tight">Polar → Strava</h1>
+      <h1 class="text-3xl font-semibold tracking-tight flex items-center gap-2 flex-wrap">
+        <!-- Brand-color hint icons. We deliberately avoid Polar's and Strava's
+             actual logos/wordmarks (those are trademarked) — these are generic
+             lucide icons in each brand's published primary color so the page
+             feels related without implying official endorsement. -->
+        <HeartPulse class="size-7 text-[#DA291C]" aria-hidden="true" />
+        <span class="text-[#DA291C]">Polar</span>
+        <span class="text-muted-foreground" aria-hidden="true">→</span>
+        <span class="text-[#FC4C02]">Strava</span>
+        <Activity class="size-7 text-[#FC4C02]" aria-hidden="true" />
+      </h1>
       <p class="mt-1 text-muted-foreground">
         Convert your Polar export to Strava-ready FIT — locally in your browser.
       </p>
