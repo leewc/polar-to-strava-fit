@@ -23,6 +23,7 @@
     "clsx": "^2.1.1",
     "fflate": "^0.8.2",
     "json5": "^2.2.3",
+    "lucide-svelte": "^1.0.1",
     "tailwind-merge": "^2.5.5"
   },
   "devDependencies": {

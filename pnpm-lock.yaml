@@ -23,6 +23,9 @@ importers:
       json5:
         specifier: ^2.2.3
         version: 2.2.3
+      lucide-svelte:
+        specifier: ^1.0.1
+        version: 1.0.1(svelte@5.56.0)
       tailwind-merge:
         specifier: ^2.5.5
         version: 2.6.1
@@ -797,6 +800,12 @@ packages:
 
   locate-character@3.0.0:
     resolution: {integrity: sha512-SW13ws7BjaeJ6p7Q6CO2nchbYEc3X3J6WrmTTDto7yMPqVSZTUyY5Tjbid+Ab8gLnATtygYtiDIJGQRRn2ZOiA==}
+
+  lucide-svelte@1.0.1:
+    resolution: {integrity: sha512-WvzZgk0pqzgda+AErLvgWxHkfg/+GgUwqKMRHvzt0IqyMdmyEDzDCk3Z+Wo/3y753oIgx8u9Q4eUbWkghFa8Jg==}
+    deprecated: Package deprecated. Please use @lucide/svelte instead.
+    peerDependencies:
+      svelte: ^3 || ^4 || ^5.0.0-next.42
 
   lz-string@1.5.0:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
@@ -1641,6 +1650,10 @@ snapshots:
       lightningcss-win32-x64-msvc: 1.32.0
 
   locate-character@3.0.0: {}
+
+  lucide-svelte@1.0.1(svelte@5.56.0):
+    dependencies:
+      svelte: 5.56.0
 
   lz-string@1.5.0: {}
 

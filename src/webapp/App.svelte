@@ -40,6 +40,21 @@
   import { Progress } from '$lib/components/ui/progress'
   import { Badge } from '$lib/components/ui/badge'
   import * as Alert from '$lib/components/ui/alert'
+  import {
+    Check,
+    ChevronDown,
+    Circle,
+    Loader2,
+    CheckCircle2,
+    AlertTriangle,
+    XCircle,
+    Download,
+    Copy,
+    Upload,
+    MapPin,
+    Dumbbell,
+    RotateCcw,
+  } from 'lucide-svelte'
 
   // ---------------------------------------------------------------------------
   // State machine
@@ -323,6 +338,7 @@
     worker = null
     if (outFitUrl) URL.revokeObjectURL(outFitUrl)
     for (const url of Object.values(perFileUrls)) URL.revokeObjectURL(url)
+    if (copyResetTimer) clearTimeout(copyResetTimer)
   })
 
   // ---------------------------------------------------------------------------
@@ -343,6 +359,25 @@
   function fmtDate(s: string): string {
     return s ? s.slice(0, 10) : ''
   }
+
+  // ---------------------------------------------------------------------------
+  // Copy-to-clipboard for the Strava upload URL.
+  // ---------------------------------------------------------------------------
+  let stravaUrlCopied = $state(false)
+  let copyResetTimer: ReturnType<typeof setTimeout> | null = null
+  async function copyStravaUrl(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText('https://www.strava.com/upload/select')
+      stravaUrlCopied = true
+      if (copyResetTimer) clearTimeout(copyResetTimer)
+      copyResetTimer = setTimeout(() => {
+        stravaUrlCopied = false
+      }, 1500)
+    } catch {
+      // Clipboard unavailable (e.g. insecure context); silently no-op — the
+      // visible link is still right there for the user to copy manually.
+    }
+  }
 </script>
 
 <main class="mx-auto max-w-3xl p-6 sm:p-10 space-y-6">
@@ -355,6 +390,7 @@
     </div>
     {#if file !== null}
       <Button variant="ghost" size="sm" onclick={startOver} class="shrink-0">
+        <RotateCcw class="size-4 mr-1" aria-hidden="true" />
         Start over
       </Button>
     {/if}
@@ -375,10 +411,14 @@
         class="flex w-full items-center justify-between text-left"
         onclick={() => reexpand(1)}
       >
-        <Card.Title>
-          <span class="mr-2" aria-hidden="true">
-            {stage1State === 'completed' ? '✓' : stage1State === 'active' ? '▼' : '◯'}
-          </span>
+        <Card.Title class="flex items-center gap-2">
+          {#if stage1State === 'completed'}
+            <Check class="size-4 text-emerald-600" aria-hidden="true" />
+          {:else if stage1State === 'active'}
+            <ChevronDown class="size-4" aria-hidden="true" />
+          {:else}
+            <Circle class="size-4 text-muted-foreground" aria-hidden="true" />
+          {/if}
           1. ZIP loaded
         </Card.Title>
         {#if stage1State === 'completed' && file}
@@ -396,6 +436,7 @@
           ondragover={(e) => e.preventDefault()}
           class="flex h-40 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/30 p-6 text-center transition-colors hover:border-primary/40 hover:bg-muted/50"
         >
+          <Upload class="mb-2 size-8 text-muted-foreground" aria-hidden="true" />
           <span class="text-base font-medium">Drop your Polar export ZIP here</span>
           <span class="mt-1 text-sm text-muted-foreground">or click to browse</span>
           <input
@@ -418,10 +459,14 @@
         onclick={() => reexpand(2)}
         disabled={stage2State === 'pending'}
       >
-        <Card.Title>
-          <span class="mr-2" aria-hidden="true">
-            {stage2State === 'completed' ? '✓' : stage2State === 'active' ? '▼' : '◯'}
-          </span>
+        <Card.Title class="flex items-center gap-2">
+          {#if stage2State === 'completed'}
+            <Check class="size-4 text-emerald-600" aria-hidden="true" />
+          {:else if stage2State === 'active'}
+            <ChevronDown class="size-4" aria-hidden="true" />
+          {:else}
+            <Circle class="size-4 text-muted-foreground" aria-hidden="true" />
+          {/if}
           2. {manifest.length > 0 ? `${manifest.length} sessions found` : 'Sessions found'}
         </Card.Title>
         {#if stage2State === 'completed'}
@@ -476,8 +521,20 @@
                   </span>
                   <Badge variant="secondary">{entry.sportLabel}</Badge>
                   <span class="truncate">{entry.sessionName}</span>
-                  <span class="ml-auto text-xs text-muted-foreground">
-                    {fmtDuration(entry.durationSec)} · {entry.hasGps ? 'GPS' : 'indoor'}
+                  <span class="ml-auto inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span>{fmtDuration(entry.durationSec)}</span>
+                    <span aria-hidden="true">·</span>
+                    {#if entry.hasGps}
+                      <MapPin
+                        class="size-3.5 text-muted-foreground"
+                        aria-label="GPS"
+                      />
+                    {:else}
+                      <Dumbbell
+                        class="size-3.5 text-muted-foreground"
+                        aria-label="Indoor"
+                      />
+                    {/if}
                   </span>
                 </div>
               </li>
@@ -503,10 +560,14 @@
         onclick={() => reexpand(3)}
         disabled={stage3State === 'pending'}
       >
-        <Card.Title>
-          <span class="mr-2" aria-hidden="true">
-            {stage3State === 'completed' ? '✓' : stage3State === 'active' ? '▼' : '◯'}
-          </span>
+        <Card.Title class="flex items-center gap-2">
+          {#if stage3State === 'completed'}
+            <Check class="size-4 text-emerald-600" aria-hidden="true" />
+          {:else if stage3State === 'active'}
+            <ChevronDown class="size-4" aria-hidden="true" />
+          {:else}
+            <Circle class="size-4 text-muted-foreground" aria-hidden="true" />
+          {/if}
           3. Converting{stage3State === 'active' ? '…' : ''}
         </Card.Title>
         {#if stage3State === 'completed'}
@@ -534,15 +595,17 @@
             {@const p = progress[entry.fileName]}
             <li class="flex items-center justify-between gap-2">
               <span class="flex items-center gap-2">
-                <span aria-hidden="true">
-                  {p?.status === 'ready'
-                    ? '✓'
-                    : p?.status === 'converting'
-                      ? '⟳'
-                      : p?.status === 'error'
-                        ? '✗'
-                        : '◯'}
-                </span>
+                {#if p?.status === 'converting'}
+                  <Loader2 class="size-4 animate-spin text-muted-foreground" aria-hidden="true" />
+                {:else if p?.status === 'ready' && p.report && !p.report.ok}
+                  <AlertTriangle class="size-4 text-amber-600" aria-hidden="true" />
+                {:else if p?.status === 'ready'}
+                  <CheckCircle2 class="size-4 text-emerald-600" aria-hidden="true" />
+                {:else if p?.status === 'error'}
+                  <XCircle class="size-4 text-destructive" aria-hidden="true" />
+                {:else}
+                  <Circle class="size-4 text-muted-foreground" aria-hidden="true" />
+                {/if}
                 <span class="font-mono text-xs text-muted-foreground">
                   {fmtDate(entry.startTime)}
                 </span>
@@ -571,10 +634,14 @@
         onclick={() => reexpand(4)}
         disabled={stage4State === 'pending'}
       >
-        <Card.Title>
-          <span class="mr-2" aria-hidden="true">
-            {stage4State === 'completed' ? '✓' : stage4State === 'active' ? '▼' : '◯'}
-          </span>
+        <Card.Title class="flex items-center gap-2">
+          {#if stage4State === 'completed'}
+            <Check class="size-4 text-emerald-600" aria-hidden="true" />
+          {:else if stage4State === 'active'}
+            <ChevronDown class="size-4" aria-hidden="true" />
+          {:else}
+            <Circle class="size-4 text-muted-foreground" aria-hidden="true" />
+          {/if}
           4. Validating
         </Card.Title>
         {#if stage4State === 'completed'}
@@ -595,7 +662,8 @@
             <Alert.Root
               variant={w.report.gpsReport?.severity === 'severe' ? 'destructive' : 'default'}
             >
-              <Alert.Title>
+              <Alert.Title class="flex items-center gap-2">
+                <AlertTriangle class="size-4" aria-hidden="true" />
                 {w.fileName.replace(/^.*\//, '')}
               </Alert.Title>
               <Alert.Description>
@@ -615,10 +683,12 @@
   <!-- ────────────────────────────── STAGE 5 ────────────────────────────── -->
   <Card.Root class={stage5State === 'pending' ? 'opacity-50' : ''}>
     <Card.Header>
-      <Card.Title>
-        <span class="mr-2" aria-hidden="true">
-          {stage5State === 'active' ? '▼' : '◯'}
-        </span>
+      <Card.Title class="flex items-center gap-2">
+        {#if stage5State === 'active'}
+          <ChevronDown class="size-4" aria-hidden="true" />
+        {:else}
+          <Circle class="size-4 text-muted-foreground" aria-hidden="true" />
+        {/if}
         5. Download
       </Card.Title>
     </Card.Header>
@@ -630,8 +700,8 @@
             <p class="font-medium">
               {allDoneSummary?.sessionCount ?? 0} FIT files ready
             </p>
-            <p class="text-sm text-muted-foreground">
-              Upload at
+            <p class="text-sm text-muted-foreground inline-flex items-center gap-2 flex-wrap">
+              <span>Upload at</span>
               <a
                 href="https://www.strava.com/upload/select"
                 target="_blank"
@@ -640,10 +710,25 @@
               >
                 strava.com/upload/select
               </a>
+              <button
+                type="button"
+                onclick={copyStravaUrl}
+                class="inline-flex items-center gap-1 rounded border border-border bg-muted/40 px-1.5 py-0.5 text-xs hover:bg-muted"
+                aria-label="Copy Strava upload URL"
+                title="Copy Strava upload URL"
+              >
+                <Copy class="size-3" aria-hidden="true" />
+                <span>{stravaUrlCopied ? 'Copied' : 'Copy'}</span>
+              </button>
             </p>
           </div>
           <Button>
-            <a href={outFitUrl} download="polar-to-strava-fit-export.zip">
+            <a
+              href={outFitUrl}
+              download="polar-to-strava-fit-export.zip"
+              class="inline-flex items-center gap-2"
+            >
+              <Download class="size-4" aria-hidden="true" />
               Download all as ZIP
             </a>
           </Button>
