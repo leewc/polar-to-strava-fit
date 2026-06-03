@@ -27,7 +27,7 @@ Status legend: 🟢 done · 🟡 in-progress · ⚪ pending · 🔵 user step ·
 
 | # | Task | Status | Notes |
 |---|---|---|---|
-| 11 | T12: deploy to GitHub Pages + write README | 🟡 | Workflow committed (`6f87a90`), pushed to origin. User enabling Pages source=GitHub Actions in repo settings. Live URL will be `https://leewc.github.io/polar-to-strava-fit/` once first run completes. README polish folded into T16. |
+| 11 | T12: deploy to GitHub Pages + write README | 🟢 | Live at https://leewc.com/polar-to-strava-fit/ (custom CNAME, Cloudflare-fronted). leewc.github.io/polar-to-strava-fit/ 301-redirects to it. README polish folded into T16. |
 | 13 | T13: animations + validation info pane | ⚪ | Post-T12 polish: spinner during convert, pulse during validate, ℹ️ Strava-warnings explainer pane, per-row gpsReport tooltip |
 | 14 | T14: stats dashboard (Best Efforts, totals) | ⚪ | Post-conversion summary mirroring Strava's Best Efforts widget (400m, 1/2mi, 1K, …, Half-Marathon) plus activity/distance/time/elev totals |
 | 15 | T15: bundle a sample/demo ZIP for one-click try | ⚪ | Ship 5 runs + 2 indoor workouts, fully anonymized via `scripts/anonymize-fixture.mjs`. "Try with sample data" CTA on the drop zone. Ships from `public/` so Vite bundles it. |
