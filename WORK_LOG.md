@@ -55,7 +55,12 @@ use `/usage` in Claude Code for the authoritative session totals.
 | **Wave 6 fan-out (2 agents in worktrees)** | ✅ all PASS | **169,943** | **67** | ~5.1m | merged 2026-06-03 via `17494ac` |
 | ↳ T21 dark mode (system pref + manual cycle toggle) | ✅ | (incl. above) | (incl.) | (incl.) | `1fbbd01` |
 | ↳ T23 bundle-size regression fix (dynamic imports) | ✅ | (incl.) | (incl.) | (incl.) | `9edd1d3` |
-| **Total sub-agent work — project complete** | | **~1.67M** | **~884** | | |
+| Polish: privacy copy refined post-T23 (main thread) | ✅ | n/a | n/a | n/a | `c541808` |
+| Polish: 2-state theme toggle + branded favicon + T24 tooltip (main) | ✅ | n/a | n/a | n/a | `20044fd` |
+| **Wave 7 (1 agent, in flight)** | 🟡 | TBD | TBD | (started 2026-06-03 ~12:55 PT) | TBD |
+| ↳ T22 CLI vending feasibility (npx polar-to-strava-fit) | 🟡 | (in flight) | (in flight) | (in flight) | TBD |
+| **Wave 8 (1 agent, in flight, NO COMMIT)** | 🟡 | TBD | TBD | (started 2026-06-03 ~13:08 PT) | uncommitted by design |
+| ↳ T25 Tier-1 multi-sport Best Efforts prototype | 🟡 | (in flight) | (in flight) | (in flight) | (uncommitted — user reviews) |
 
 \*Worktree fan-out durations are wall-clock max-of-4 since they ran in parallel; actual CPU time was the sum.
 
@@ -70,14 +75,17 @@ use `/usage` in Claude Code for the authoritative session totals.
 - **Two Strava uploads accepted** during T6.5: indoor session + April 18 GPS run.
 - **Worktree isolation works.** Wave-1 ran 4 agents in parallel against disjoint paths (`src/validate/*`, `src/webapp/*`, `src/cli/inspect.ts`, `src/cli/validate.ts`, plus a `package.json` happy-dom add) with zero merge conflicts.
 
-## Final cumulative state (after wave 6: T21 + T23, project polished)
+## Final cumulative state (after wave 6 + polish, project polished)
 
-- **160 tests pass + 1 skipped** across 23 test files (+10 from T21's theme tests).
+- **160 tests pass + 1 skipped** across 23 test files (+10 from T21's theme tests). T25 (in flight) will add ~12 more.
 - **0 TypeScript errors** (`pnpm check` clean).
-- **22/24 tracked tasks done.** Remaining: T22 (CLI vending — investigate first) is backlog. Discrete polish tasks all shipped.
+- **24/26 tracked tasks done.** In flight: T22 (CLI vending feasibility — sub-agent investigation), T25 (Tier-1 multi-sport stats prototype, deliberately uncommitted).
 - **Bundle sizes** (post-T23 fix): main JS 146 KB / 48 KB gz (was 554/116 before T23), worker unchanged at 459 KB. The heavy stats path lazy-loads as separate chunks (`stats` 374 KB / 56 KB gz, `parsePolarJson` 33 KB / 10 KB gz, `fflate/browser` 32 KB / 12 KB gz) only after `all-done`.
 - **Branded hero** (Polar red `#DA291C` + Strava orange `#FC4C02` with HeartPulse + Activity lucide icons). Trademark-safe — no Polar/Strava logos used.
-- **Dark mode** — follows system preference by default; manual cycle toggle in header (Sun/Moon/Laptop).
+- **Dark mode** — follows system preference by default; 2-state Sun/Moon manual flip in header (system is the implicit default; click flips light ↔ dark).
+- **Branded favicon** — heart in Polar red + zigzag in Strava orange, same visual language as the hero.
+- **Stats** — Best Efforts widget across Running sessions; T25 (uncommitted, in review) extends to cycling/swimming/walking.
+- **Privacy copy refined** post-T23 to acknowledge same-origin code-chunk lazy-loads (the privacy guarantee is unchanged; the description is more precise).
 - **Live at** https://leewc.com/polar-to-strava-fit/.
 - **Repo public** at https://github.com/leewc/polar-to-strava-fit with full plan, decisions log, and per-wave telemetry.
 

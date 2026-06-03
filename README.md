@@ -57,21 +57,45 @@ Strava runs its own quality checks on uploaded files. Some files may show:
 - **"May be in a vehicle"** — if you see this, that's a converter bug; please open an issue. The converter divides Polar's km/h SPEED stream by 3.6 to produce FIT's m/s field; if Strava still flags it as vehicle pace, something else is up.
 - **Duplicate of activity X** — Strava deduplicates by start time. If you previously uploaded the same activity manually, the new upload is rejected. Harmless — your earlier upload is still there.
 
+## Prefer a CLI?
+
+The whole conversion engine is also runnable headless from a clone of this repo:
+
+```bash
+git clone https://github.com/leewc/polar-to-strava-fit
+cd polar-to-strava-fit
+pnpm install
+pnpm convert YOUR-EXPORT.zip out/
+# 27 .fit files appear in out/, one per activity
+```
+
+The CLI uses the exact same `polarToFit` module that powers the webapp — output is byte-identical. A standalone `npx polar-to-strava-fit` install is on the roadmap (T22).
+
 ## Development
 
-This is a TypeScript + Svelte 5 + Vite project with a Node CLI counterpart that uses the same conversion module.
+This is a TypeScript + Svelte 5 + Vite project with a Node CLI counterpart that shares the conversion module.
 
 ```bash
 pnpm install
 pnpm dev          # webapp dev server at http://localhost:5173/polar-to-strava-fit/
-pnpm test         # vitest, 130+ tests
+pnpm test         # vitest, 160+ tests
 pnpm check        # svelte-check + tsc
+pnpm build        # static dist/ for deployment
 pnpm convert ZIP OUTDIR   # CLI: convert a ZIP to a directory of .fit files
 pnpm validate OUTDIR      # CLI: re-validate a directory of converted .fit files
 pnpm inspect FILE.fit     # CLI: pretty-print a FIT file's messages as JSON
 ```
 
-See PLAN.md for architecture details, the per-task implementation plan, and the decisions log.
+### Architecture
+
+- **`src/core/`** — pure conversion logic (browser- and Node-portable). Types, JSON5-tolerant parser, polarToFit (8-message FIT activity), 171-row sport map, time helpers, stats.
+- **`src/validate/`** — round-trip + conservation + GPS-quality checks. Used by both the webapp and the CLI.
+- **`src/webapp/`** — Svelte 5 wizard UI (5-stage state machine), Web Worker pipeline, shadcn-svelte components, marketing/FAQ section.
+- **`src/cli/`** — three Node CLIs (`convert` / `inspect` / `validate`) wrapping the core.
+- **`fixtures/`** — three anonymized Polar training-session fixtures for tests.
+- **`public/sample-polar-export.zip`** — the demo ZIP exposed via the "Try with sample data →" button.
+
+See `PLAN.md` for the full implementation plan, decisions log, and per-wave orchestration playbook. See `WORK_LOG.md` for sub-agent telemetry and cumulative cost.
 
 ## License
 

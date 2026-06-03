@@ -34,17 +34,24 @@ Status legend: 🟢 done · 🟡 in-progress · ⚪ pending · 🔵 user step ·
 | 20 | T20: marketing/FAQ section below the wizard | 🟢 | `485861a` (merged via `2ac910d`); MarketingSection with 6 FAQ entries (AI transparency, Why-this-tool, FIT-vs-TCX, Strava warnings, no-OAuth, offline) + footer |
 | 21 | T21: dark mode (follow system preference + optional manual cycle toggle) | 🟢 | Tailwind v4 `@custom-variant dark` + `lib/theme.ts` (system/light/dark, localStorage roundtrip, matchMedia listener) + Sun/Moon/Laptop header toggle. 10 new theme tests; 0 type errors. |
 | 23 | T23: bundle-size regression fix — dynamic-import the stats path | 🟢 | Main JS 554→143 KB (gz 116→48 KB), worker unchanged at 459 KB; `@core/stats`, `@core/parsePolarJson`, `fflate` are dynamically imported inside `buildStatsReport()` so @garmin/fitsdk only ships in the on-demand stats chunk + the worker. |
+| 24 | T24: stats `(i)` tooltip noting Best Efforts is Running-only | 🟢 | Cheap interim — `Info` icon next to the Best Efforts header with a hover/title explainer. Superseded by T25 if Tier-1 lands. |
+| — | Polish wave: branded hero (Polar red + Strava orange icons), favicon, 2-state theme toggle | 🟢 | Live at https://leewc.com/polar-to-strava-fit/. Trademark-safe (no actual Polar/Strava logos used). |
+| — | Privacy claim refined post-T23 | 🟢 | "Only same-origin code fetches; no third-party calls; no requests carrying training data; no calls to Polar or Strava." Same guarantee, more accurate now that T23 lazy-loads chunks. |
 
 ## In progress / pending
 
-_All tracked tasks are done._ See **Backlog** below for opportunistic future work.
+| # | Task | Status | Notes |
+|---|---|---|---|
+| 22 | T22: vendor a CLI install + link from website (feasibility study) | 🟡 | Sub-agent in worktree investigating: bundle size, npx UX, naming, license, publish flow. Returns ship/defer/do-not-ship recommendation + optional prototype tarball. **No npm publish yet** — user reviews report first. |
+| 25 | T25: Tier-1 multi-sport Best Efforts (cycling/swimming/walking) — synthetic-data prototype | 🟡 | Sliding-window algo is sport-agnostic; only reference distances differ. Synthesized test sessions for each family. **Explicitly not committed** — user testing the synthetic flow before deciding to ship. |
 
 ## Backlog (no commitments)
 
 - Screenshots of the wizard for the README + marketing section
 - PWA service worker for true offline mode
 - Multi-lap support (no real Polar data has lap markers in the user's export, but other exports do)
-- Cycling sessions (none in this dataset; only Running + Indoor)
+- **Stats Tier 2** — power-based Best Efforts for cycling (peak 5s/1min/5min/20min/60min watts), HR-zone time-in-zone breakdown for any sport. Discrete add-ons, ~3-4h each.
+- **Stats Tier 3** (skip) — per-sport custom dashboards. Combinatorial, not actually useful.
 - Strava OAuth direct upload — explicitly out of scope (privacy/one-time use)
 
 ## Mid-flight discoveries (logged in `PLAN.md` Decisions)
