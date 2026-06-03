@@ -41,6 +41,7 @@
   import { computeStats, type StatsReport } from '@core/stats'
   import type { PolarSession } from '@core/types'
   import StatsCard from './StatsCard.svelte'
+  import MarketingSection from './MarketingSection.svelte'
   import * as Card from '$lib/components/ui/card'
   import { Button } from '$lib/components/ui/button'
   import { Progress } from '$lib/components/ui/progress'
@@ -1010,3 +1011,10 @@
     Your data never leaves your browser. No uploads. No analytics. Verify in DevTools.
   </footer>
 </main>
+
+<!-- ─────────────────────────── MARKETING / FAQ (T20) ─────────────────────
+     Rendered OUTSIDE the wizard <main>, after a horizontal separator, so it
+     is visually distinct from the conversion flow above. The section is
+     pure presentation — no state, no events flow back into the wizard. -->
+<hr class="mx-auto my-8 max-w-3xl border-t border-border" />
+<MarketingSection />
