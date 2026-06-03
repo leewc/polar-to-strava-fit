@@ -46,10 +46,17 @@
     <h2 class="text-2xl font-semibold tracking-tight">Privacy</h2>
     <p class="text-muted-foreground">
       Your data never leaves your browser. This is a static site with no
-      backend, no analytics, and no logging. Open DevTools → Network tab
-      <strong class="text-foreground">before</strong> you drop your ZIP — you'll
-      see zero requests during conversion. The only network traffic is the
-      initial page-load assets fetching from the CDN.
+      backend, no analytics, and no logging — your ZIP is parsed and converted
+      entirely on your machine.
+    </p>
+    <p class="text-muted-foreground">
+      Open DevTools → Network tab <strong class="text-foreground">before</strong>
+      you drop your ZIP. You'll see only same-origin asset fetches from the
+      CDN: the initial page load, plus a few JavaScript chunks lazy-loaded as
+      you progress through the wizard (the conversion engine, the stats
+      module, the ZIP library — all code, no data). There are no requests to
+      any third-party service, no requests carrying any of your training
+      data, and no requests at all to Polar or Strava during conversion.
     </p>
   </div>
 

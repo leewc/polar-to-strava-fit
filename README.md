@@ -15,7 +15,9 @@ Polar Flow's web UI exports activities one at a time. Strava only accepts FIT/TC
 
 ## Privacy
 
-Your data never leaves your browser. The converter is a static site with no backend, no analytics, no telemetry, no logging. Open DevTools → Network tab before dropping your ZIP — you'll see zero requests during conversion. Only the initial page-load assets fetch from the CDN.
+Your data never leaves your browser. The converter is a static site with no backend, no analytics, no telemetry, no logging.
+
+Open DevTools → Network tab before dropping your ZIP. You'll see only same-origin asset fetches from the CDN: the initial page load, plus a few JavaScript chunks lazy-loaded as you progress through the wizard (the conversion engine, the stats module, the ZIP library — all code, no data). There are no requests to any third-party service, no requests carrying any of your training data, and no requests to Polar or Strava during conversion.
 
 ## How to get your Polar export ZIP
 
