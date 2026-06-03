@@ -32,6 +32,7 @@ Status legend: 🟢 done · 🟡 in-progress · ⚪ pending · 🔵 user step ·
 | 19 | T19: fix sample-zip 'invalid zip data' (URL was wrong) + content-type guard + 5 fetch tests | 🟢 | `6fa03f4` |
 | 14 | T14: stats dashboard (Best Efforts 400m–HM + totals) | 🟢 | `b8781b9` (merged via `2e8c469`); StatsCard renders between Stage 4 and 5 |
 | 20 | T20: marketing/FAQ section below the wizard | 🟢 | `485861a` (merged via `2ac910d`); MarketingSection with 6 FAQ entries (AI transparency, Why-this-tool, FIT-vs-TCX, Strava warnings, no-OAuth, offline) + footer |
+| 23 | T23: bundle-size regression fix — dynamic-import the stats path | 🟢 | Main JS 554→143 KB (gz 116→48 KB), worker unchanged at 459 KB; `@core/stats`, `@core/parsePolarJson`, `fflate` are dynamically imported inside `buildStatsReport()` so @garmin/fitsdk only ships in the on-demand stats chunk + the worker. |
 
 ## In progress / pending
 
@@ -54,6 +55,7 @@ _All tracked tasks are done._ See **Backlog** below for opportunistic future wor
 - **2026-06-03** — Empty-manifest dead-end. The `all-done` event handler unconditionally pushed `currentStage = 5`, collapsing the stage-2 empty-state UI. Fix: gate the stage-5 transition on `sessionCount > 0`. (T18, `300f8ff`)
 - **2026-06-03** — Sample-zip CTA fetched via `import.meta.url` resolved relative to the JS bundle at `/polar-to-strava-fit/assets/`, hitting a 404 and getting the SPA fallback HTML which fflate then choked on. Fix: use `import.meta.env.BASE_URL` (Vite-provided, deploy-base-aware) + content-type guard for clearer error. (T19, `6fa03f4`)
 - **2026-06-03** — Wave-2 lessons applied to wave-3a/b/4: pre-installing shadcn before fan-out (T17 single-agent) prevented the duplicate-shadcn-install fight from wave-2. Subsequent waves merged with at most one minor App.svelte conflict per wave (icon imports + Stage 1 markup), all auto-resolvable.
+- **2026-06-03** — T14 stats dashboard re-parsed the source ZIP in App.svelte by statically importing `@core/stats`, `@core/parsePolarJson`, and `fflate`. Those imports transitively pulled @garmin/fitsdk (~430 KB) into the *main* bundle on top of the worker bundle that already contained it. Main JS ballooned from ~125 KB → 554 KB (gz 42 → 116). Fix (T23): swap to dynamic `await import()` inside `buildStatsReport()` so Vite code-splits them into an on-demand chunk. Main JS back to 143 KB (gz 48), stats chunk 374 KB (gz 56) loads only after `all-done` fires. Cost is a single async hop before StatsCard renders. Worker bundle unchanged.
 
 ## Artifacts in this repo
 
