@@ -21,15 +21,17 @@ Status legend: 🟢 done · 🟡 in-progress · ⚪ pending · 🔵 user step ·
 | 8 | T6.5: early Strava acceptance gate (manual upload) | 🟢 🔵 | passed 2026-06-02 |
 | 12 | T6.6: GPS-quality detection + warnings + optional crop | 🟢 | `dcd201a` |
 | 9 | Phase 4: webapp + CLI helpers fan-out (waves 1+2) | 🟢 | `cfbd660` `2d5c276` `b3fef3c` `90e030b→d837804` `f290a2b` `5fe8122` |
+| 10 | T11: full Strava batch upload via webapp | 🟢 🔵 | Confirmed working 2026-06-02; webapp produced upload-ready files |
 
 ## In progress / pending
 
 | # | Task | Status | Notes |
 |---|---|---|---|
-| 10 | T11: full Strava batch upload | 🟡 🔵 | User downloads from webapp + uploads to https://www.strava.com/upload/select |
-| 11 | T12: deploy to GitHub Pages + write README | ⚪ 🟥(by 10) | Needs repo URL, Pages workflow, base-path verification |
+| 11 | T12: deploy to GitHub Pages + write README | ⚪ | Needs repo URL, Pages workflow, base-path verification |
 | 13 | T13: animations + validation info pane | ⚪ | Post-T12 polish: spinner during convert, pulse during validate, ℹ️ Strava-warnings explainer pane, per-row gpsReport tooltip |
 | 14 | T14: stats dashboard (Best Efforts, totals) | ⚪ | Post-conversion summary mirroring Strava's Best Efforts widget (400m, 1/2mi, 1K, …, Half-Marathon) plus activity/distance/time/elev totals |
+| 15 | T15: bundle a sample/demo ZIP for one-click try | ⚪ | Ship 5 runs + 2 indoor workouts, fully anonymized via `scripts/anonymize-fixture.mjs`. "Try with sample data" CTA on the drop zone. Ships from `public/` so Vite bundles it. |
+| 16 | T16: marketing + how-to-procure-the-zip docs | ⚪ | Turn README into a landing page: hook, screenshots, privacy claim, step-by-step "how to get your Polar export ZIP" with screenshots, FAQ, deploy URL CTA. |
 
 ## Mid-flight discoveries (logged in `PLAN.md` Decisions)
 
