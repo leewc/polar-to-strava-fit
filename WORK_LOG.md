@@ -50,9 +50,9 @@ use `/usage` in Claude Code for the authoritative session totals.
 | T19 fix: sample-zip 'invalid zip data' (URL + content-type guard) + 5 tests (main) | ✅ | n/a | n/a | n/a | `6fa03f4` |
 | **Wave 4 (1 agent in worktree)** | ✅ PASS | **127,030** | **53** | ~9.5m | merged 2026-06-03 via `2e8c469` |
 | ↳ T14 stats dashboard (Best Efforts + totals) | ✅ | (incl. above) | (incl.) | (incl.) | `b8781b9` |
-| **Wave 5 (1 agent in worktree)** | 🟡 in flight | TBD | TBD | (started 2026-06-03 ~00:36 PT) | TBD |
-| ↳ T20 marketing/FAQ section below the wizard | 🟡 | (in flight) | (in flight) | (in flight) | TBD |
-| Subtotal sub-agent work through wave 5 dispatch | | **~1.42M** | **~785** | | |
+| **Wave 5 (1 agent in worktree)** | ✅ PASS | **84,101** | **32** | ~4.5m | merged 2026-06-03 via `2ac910d` |
+| ↳ T20 marketing/FAQ section below the wizard | ✅ | (incl. above) | (incl.) | (incl.) | `485861a` |
+| **Total sub-agent work — project complete** | | **~1.50M** | **~817** | | |
 
 \*Worktree fan-out durations are wall-clock max-of-4 since they ran in parallel; actual CPU time was the sum.
 
@@ -66,6 +66,14 @@ use `/usage` in Claude Code for the authoritative session totals.
 - **One real session flagged** by T6.6 GPS detection (May 23 — the same one Strava rejected during T6.5).
 - **Two Strava uploads accepted** during T6.5: indoor session + April 18 GPS run.
 - **Worktree isolation works.** Wave-1 ran 4 agents in parallel against disjoint paths (`src/validate/*`, `src/webapp/*`, `src/cli/inspect.ts`, `src/cli/validate.ts`, plus a `package.json` happy-dom add) with zero merge conflicts.
+
+## Final cumulative state (after T20, project complete)
+
+- **150 tests pass + 1 skipped** across 22 test files (+2 from T20's MarketingSection tests).
+- **0 TypeScript errors** (`pnpm check` clean).
+- **20/20 tracked tasks done.** Backlog (screenshots, PWA, multi-lap, cycling) intentionally uncommitted.
+- **Live at** https://leewc.com/polar-to-strava-fit/ with the wizard + marketing section + FAQ + footer all rendered.
+- **Repo public** at https://github.com/leewc/polar-to-strava-fit with full plan, decisions log, and per-wave telemetry.
 
 ## Cumulative state at end of Wave 4 (post-T14, before T20)
 

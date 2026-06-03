@@ -31,12 +31,11 @@ Status legend: 🟢 done · 🟡 in-progress · ⚪ pending · 🔵 user step ·
 | 18 | T18: gate `currentStage = 5` on `sessionCount > 0` so empty-manifest stays visible | 🟢 | `300f8ff` (folded into the wave-3b merge) |
 | 19 | T19: fix sample-zip 'invalid zip data' (URL was wrong) + content-type guard + 5 fetch tests | 🟢 | `6fa03f4` |
 | 14 | T14: stats dashboard (Best Efforts 400m–HM + totals) | 🟢 | `b8781b9` (merged via `2e8c469`); StatsCard renders between Stage 4 and 5 |
+| 20 | T20: marketing/FAQ section below the wizard | 🟢 | `485861a` (merged via `2ac910d`); MarketingSection with 6 FAQ entries (AI transparency, Why-this-tool, FIT-vs-TCX, Strava warnings, no-OAuth, offline) + footer |
 
 ## In progress / pending
 
-| # | Task | Status | Notes |
-|---|---|---|---|
-| 20 | T20: marketing/FAQ section below the wizard | 🟡 | Dispatched to wave-5 worktree as of 2026-06-03. 6 FAQ entries including AI-transparency Q ("yes, ~all of it; ~$60 cost; audit on GitHub") and the framing "Why did you build this?" Q. |
+_All tracked tasks are done._ See **Backlog** below for opportunistic future work.
 
 ## Backlog (no commitments)
 
