@@ -34,8 +34,13 @@
 <script lang="ts">
   import { onDestroy, untrack } from 'svelte'
   import { slide } from 'svelte/transition'
+  import { unzipSync, strFromU8 } from 'fflate'
   import type { ManifestEntry, PipelineEvent } from './pipeline'
   import type { ValidationReport } from '@validate/checks'
+  import { parsePolarJson } from '@core/parsePolarJson'
+  import { computeStats, type StatsReport } from '@core/stats'
+  import type { PolarSession } from '@core/types'
+  import StatsCard from './StatsCard.svelte'
   import * as Card from '$lib/components/ui/card'
   import { Button } from '$lib/components/ui/button'
   import { Progress } from '$lib/components/ui/progress'
@@ -106,6 +111,8 @@
   )
   /** Worker fatal error, if any. */
   let fatalError = $state<string | null>(null)
+  /** Stats dashboard report; populated asynchronously after `all-done`. */
+  let stats = $state<StatsReport | null>(null)
 
   // ---------------------------------------------------------------------------
   // Worker plumbing
@@ -186,6 +193,18 @@
           sessionCount: event.sessionCount,
           warningCount: event.warningCount,
         }
+        // Compute the stats dashboard asynchronously. Re-parses the ZIP to
+        // recover the PolarSession objects (the worker only ships back FIT
+        // bytes + reports). Off-main-thread cost would be nice but the
+        // re-parse is small (single-digit MB JSON) and runs once after
+        // conversion finishes, so a plain microtask is enough.
+        if (event.sessionCount > 0 && file !== null) {
+          void buildStatsReport(file, progress).then((s) => {
+            stats = s
+          })
+        } else {
+          stats = null
+        }
         // Validation is computed inline during conversion (the pipeline
         // already runs `decodeAndAssertStructure` + `conservationReport`),
         // so by all-done we have everything for stages 4 & 5. Jump to 5 —
@@ -219,6 +238,7 @@
     fatalError = null
     outFitBlob = null
     allDoneSummary = null
+    stats = null
     manifest = []
     manifestReceived = false
     progress = {}
@@ -238,6 +258,7 @@
     fatalError = null
     outFitBlob = null
     allDoneSummary = null
+    stats = null
     manifest = []
     manifestReceived = false
     progress = {}
@@ -423,6 +444,49 @@
     if (copyResetTimer) clearTimeout(copyResetTimer)
     if (flashTimer) clearTimeout(flashTimer)
   })
+
+  // ---------------------------------------------------------------------------
+  // Stats dashboard: re-parse the source ZIP to recover PolarSession objects,
+  // pair each with its converted bytes from `progress`, then run the pure
+  // `computeStats` function. The worker only ships FIT bytes + validation
+  // reports back; the original session JSON isn't kept around to save memory,
+  // so we rehydrate from the user's File when we need it. One-shot cost,
+  // happens only after `all-done` fires.
+  // ---------------------------------------------------------------------------
+  async function buildStatsReport(
+    sourceFile: File,
+    progressSnapshot: typeof progress,
+  ): Promise<StatsReport | null> {
+    try {
+      const zipBuf = await sourceFile.arrayBuffer()
+      const zipBytes = new Uint8Array(zipBuf)
+      const entries = unzipSync(zipBytes)
+      const items: Array<{
+        session: PolarSession
+        bytes: Uint8Array
+        fileName: string
+      }> = []
+      // Keys in `entries` are full ZIP paths (e.g. "polar-export/training-session-...json"),
+      // which match the `fileName` keys used in `progress` via the pipeline's
+      // `isTrainingSessionEntry` filter.
+      for (const [fileName, entry] of Object.entries(progressSnapshot)) {
+        if (entry.status !== 'ready' || !entry.bytes) continue
+        const raw = entries[fileName]
+        if (!raw) continue
+        try {
+          const session = parsePolarJson(strFromU8(raw))
+          items.push({ session, bytes: entry.bytes, fileName })
+        } catch {
+          // Skip individual session parse failures — the converter already
+          // surfaced them as session-error events. Stats omit those.
+        }
+      }
+      return computeStats(items)
+    } catch {
+      // Re-parse failure is non-fatal: just hide the stats card.
+      return null
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Tiny formatters used by inline rendering. All pure.
@@ -858,6 +922,13 @@
       </Card.Content>
     {/if}
   </Card.Root>
+
+  <!-- ─── STATS DASHBOARD (T14) ───────────────────────────────────────────
+       Rendered inline between Stage 4 and Stage 5, OUTSIDE any wizard
+       Card.Root, so it stands out as a one-time "what was in your data"
+       summary rather than another stage. Hidden until `stats` is populated
+       (which happens once `all-done` arrives) and the report has signal. -->
+  <StatsCard {stats} />
 
   <!-- ────────────────────────────── STAGE 5 ────────────────────────────── -->
   <Card.Root class={stage5State === 'pending' ? 'opacity-50' : ''}>
