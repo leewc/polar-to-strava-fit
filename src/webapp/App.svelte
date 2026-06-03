@@ -56,6 +56,7 @@
     Dumbbell,
     RotateCcw,
     Info,
+    Sparkles,
   } from 'lucide-svelte'
 
   // ---------------------------------------------------------------------------
@@ -191,7 +192,19 @@
         // stage 4's content is rendered alongside stage 3 for now (see the
         // "validation" block in the active stage 3 markup); when the
         // dedicated validate stage is broken out, we'll pause on 4 first.
-        currentStage = 5
+        //
+        // Empty-manifest exception (T18): if the ZIP turned out to have zero
+        // training-session entries, runPipeline still emits all-done with
+        // sessionCount=0. Advancing to stage 5 in that case would collapse
+        // the stage-2 empty-state UI (which is the only useful thing on
+        // screen for the user) and expose an empty stage 5 (no blob to
+        // download). Stay parked at stage 2 instead so the empty-state
+        // message and the "Try a different file" button stay visible.
+        if (event.sessionCount === 0) {
+          currentStage = 2
+        } else {
+          currentStage = 5
+        }
         break
       }
     }
@@ -248,6 +261,34 @@
     e.preventDefault()
     const f = e.dataTransfer?.files?.[0]
     if (f) onFilePicked(f)
+  }
+
+  /** "Try with sample data" CTA. Fetches the bundled, fully-anonymized
+   *  Polar export (5 Running + 2 indoor sessions, including one with a known
+   *  GPS teleport so the warning UI is exercised), wraps it as a `File`, and
+   *  feeds it through the same `onFilePicked` path as a real drop. The
+   *  `import.meta.url`-relative URL keeps it correct under any base path —
+   *  GitHub Pages serves the deploy at `/polar-to-strava-fit/` rather than `/`. */
+  let sampleLoading = $state(false)
+  let sampleError = $state<string | null>(null)
+  async function loadSample(): Promise<void> {
+    if (sampleLoading) return
+    sampleLoading = true
+    sampleError = null
+    try {
+      const url = new URL('./sample-polar-export.zip', import.meta.url)
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(`fetch failed: ${res.status} ${res.statusText}`)
+      const blob = await res.blob()
+      const f = new File([blob], 'polar-export-sample.zip', {
+        type: 'application/zip',
+      })
+      onFilePicked(f)
+    } catch (err) {
+      sampleError = err instanceof Error ? err.message : String(err)
+    } finally {
+      sampleLoading = false
+    }
   }
 
   /** Click-to-collapse: jump back to a completed stage to inspect it. */
@@ -475,6 +516,26 @@
               onchange={handleInputChange}
             />
           </label>
+          <!-- T15: subordinate CTA below the drop zone. The sample is a
+               pre-anonymized 7-session Polar export bundled at build time;
+               clicking this is a one-click demo of the entire pipeline. -->
+          <div class="mt-3 flex flex-col items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onclick={loadSample}
+              disabled={sampleLoading}
+            >
+              <Sparkles class="size-4 mr-1.5" aria-hidden="true" />
+              {sampleLoading ? 'Loading sample…' : 'Try with sample data →'}
+            </Button>
+            <span class="text-xs text-muted-foreground">
+              7 anonymized sessions (5 runs + 2 indoor)
+            </span>
+            {#if sampleError}
+              <span class="text-xs text-destructive">Could not load sample: {sampleError}</span>
+            {/if}
+          </div>
         </Card.Content>
       </div>
     {/if}
