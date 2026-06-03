@@ -34,11 +34,16 @@
 <script lang="ts">
   import { onDestroy, untrack } from 'svelte'
   import { slide } from 'svelte/transition'
-  import { unzipSync, strFromU8 } from 'fflate'
   import type { ManifestEntry, PipelineEvent } from './pipeline'
   import type { ValidationReport } from '@validate/checks'
-  import { parsePolarJson } from '@core/parsePolarJson'
-  import { computeStats, type StatsReport } from '@core/stats'
+  // NOTE: `@core/stats`, `@core/parsePolarJson`, and `fflate` are imported
+  // *dynamically* inside `buildStatsReport()` below — see T23. Importing them
+  // statically pulls @garmin/fitsdk (via @core/polarToFit's import graph) into
+  // the main bundle on top of the worker bundle that already has it,
+  // ballooning the main JS from ~125 KB to ~554 KB. Dynamic import lets Vite
+  // code-split them into a chunk that only loads when stats are computed
+  // (after `all-done`). Cost is one async hop before StatsCard renders.
+  import type { StatsReport } from '@core/stats'
   import type { PolarSession } from '@core/types'
   import StatsCard from './StatsCard.svelte'
   import MarketingSection from './MarketingSection.svelte'
@@ -470,6 +475,16 @@
     progressSnapshot: typeof progress,
   ): Promise<StatsReport | null> {
     try {
+      // Dynamic imports (T23): keeps `@core/parsePolarJson` (which pulls in
+      // the @garmin/fitsdk-heavy converter graph) and `fflate` out of the
+      // main bundle. Vite code-splits these into an on-demand chunk loaded
+      // only after conversion finishes. Brief async hop before stats render.
+      const [{ unzipSync, strFromU8 }, { parsePolarJson }, { computeStats }] =
+        await Promise.all([
+          import('fflate'),
+          import('@core/parsePolarJson'),
+          import('@core/stats'),
+        ])
       const zipBuf = await sourceFile.arrayBuffer()
       const zipBytes = new Uint8Array(zipBuf)
       const entries = unzipSync(zipBytes)
