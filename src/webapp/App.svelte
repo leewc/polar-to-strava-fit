@@ -266,9 +266,19 @@
   /** "Try with sample data" CTA. Fetches the bundled, fully-anonymized
    *  Polar export (5 Running + 2 indoor sessions, including one with a known
    *  GPS teleport so the warning UI is exercised), wraps it as a `File`, and
-   *  feeds it through the same `onFilePicked` path as a real drop. The
-   *  `import.meta.url`-relative URL keeps it correct under any base path —
-   *  GitHub Pages serves the deploy at `/polar-to-strava-fit/` rather than `/`. */
+   *  feeds it through the same `onFilePicked` path as a real drop.
+   *
+   *  Use `import.meta.env.BASE_URL` (Vite-provided, deploy-base-aware) rather
+   *  than `import.meta.url` — the latter resolves relative to the JS bundle
+   *  at `/polar-to-strava-fit/assets/index-XXX.js`, putting the fetch at
+   *  `/polar-to-strava-fit/assets/sample-polar-export.zip` which 404s. The
+   *  zip lives at the deploy root, e.g. `/polar-to-strava-fit/sample-polar-export.zip`.
+   *
+   *  Sanity-check the response Content-Type: the GitHub Pages 404 path can
+   *  return `text/html` with status 200 in some configurations (SPA fallback),
+   *  which would feed garbage to fflate downstream and surface as a confusing
+   *  "invalid zip data" error. Catching it here gives the user a clearer
+   *  message. */
   let sampleLoading = $state(false)
   let sampleError = $state<string | null>(null)
   async function loadSample(): Promise<void> {
@@ -276,9 +286,15 @@
     sampleLoading = true
     sampleError = null
     try {
-      const url = new URL('./sample-polar-export.zip', import.meta.url)
+      const url = `${import.meta.env.BASE_URL}sample-polar-export.zip`
       const res = await fetch(url)
-      if (!res.ok) throw new Error(`fetch failed: ${res.status} ${res.statusText}`)
+      if (!res.ok) {
+        throw new Error(`Sample data unavailable (HTTP ${res.status}). Try refreshing in a few minutes if a deploy is in progress.`)
+      }
+      const ct = res.headers.get('content-type') ?? ''
+      if (ct.includes('text/html')) {
+        throw new Error('Sample data unavailable (server returned HTML). Try refreshing in a few minutes if a deploy is in progress.')
+      }
       const blob = await res.blob()
       const f = new File([blob], 'polar-export-sample.zip', {
         type: 'application/zip',
