@@ -32,7 +32,7 @@
 -->
 
 <script lang="ts">
-  import { onDestroy } from 'svelte'
+  import { onDestroy, untrack } from 'svelte'
   import type { ManifestEntry, PipelineEvent } from './pipeline'
   import type { ValidationReport } from '@validate/checks'
   import * as Card from '$lib/components/ui/card'
@@ -277,10 +277,15 @@
         next[fileName] = URL.createObjectURL(blob)
       }
     }
-    // Revoke any stale URLs from the previous snapshot.
-    for (const [k, oldUrl] of Object.entries(perFileUrls)) {
-      if (next[k] !== oldUrl) URL.revokeObjectURL(oldUrl)
-    }
+    // Revoke any stale URLs from the previous snapshot. Use untrack() so
+    // reading `perFileUrls` here doesn't make this effect a dependency on
+    // its own output — without it we get an infinite update loop the
+    // moment we write `perFileUrls = next` below.
+    untrack(() => {
+      for (const [k, oldUrl] of Object.entries(perFileUrls)) {
+        if (next[k] !== oldUrl) URL.revokeObjectURL(oldUrl)
+      }
+    })
     perFileUrls = next
   })
 
