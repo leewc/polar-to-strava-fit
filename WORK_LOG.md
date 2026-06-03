@@ -52,9 +52,10 @@ use `/usage` in Claude Code for the authoritative session totals.
 | ↳ T14 stats dashboard (Best Efforts + totals) | ✅ | (incl. above) | (incl.) | (incl.) | `b8781b9` |
 | **Wave 5 (1 agent in worktree)** | ✅ PASS | **84,101** | **32** | ~4.5m | merged 2026-06-03 via `2ac910d` |
 | ↳ T20 marketing/FAQ section below the wizard | ✅ | (incl. above) | (incl.) | (incl.) | `485861a` |
-| **Wave 6 (1 agent in worktree)** | ✅ PASS | n/a | n/a | n/a | (T21 dark mode) |
-| ↳ T21 dark mode (system pref + manual cycle toggle) | ✅ | n/a | n/a | n/a | (this commit) |
-| **Total sub-agent work — project complete** | | **~1.50M** | **~817** | | |
+| **Wave 6 fan-out (2 agents in worktrees)** | ✅ all PASS | **169,943** | **67** | ~5.1m | merged 2026-06-03 via `17494ac` |
+| ↳ T21 dark mode (system pref + manual cycle toggle) | ✅ | (incl. above) | (incl.) | (incl.) | `1fbbd01` |
+| ↳ T23 bundle-size regression fix (dynamic imports) | ✅ | (incl.) | (incl.) | (incl.) | `9edd1d3` |
+| **Total sub-agent work — project complete** | | **~1.67M** | **~884** | | |
 
 \*Worktree fan-out durations are wall-clock max-of-4 since they ran in parallel; actual CPU time was the sum.
 
@@ -69,12 +70,15 @@ use `/usage` in Claude Code for the authoritative session totals.
 - **Two Strava uploads accepted** during T6.5: indoor session + April 18 GPS run.
 - **Worktree isolation works.** Wave-1 ran 4 agents in parallel against disjoint paths (`src/validate/*`, `src/webapp/*`, `src/cli/inspect.ts`, `src/cli/validate.ts`, plus a `package.json` happy-dom add) with zero merge conflicts.
 
-## Final cumulative state (after T20, project complete)
+## Final cumulative state (after wave 6: T21 + T23, project polished)
 
-- **150 tests pass + 1 skipped** across 22 test files (+2 from T20's MarketingSection tests).
+- **160 tests pass + 1 skipped** across 23 test files (+10 from T21's theme tests).
 - **0 TypeScript errors** (`pnpm check` clean).
-- **20/20 tracked tasks done.** Backlog (screenshots, PWA, multi-lap, cycling) intentionally uncommitted.
-- **Live at** https://leewc.com/polar-to-strava-fit/ with the wizard + marketing section + FAQ + footer all rendered.
+- **22/24 tracked tasks done.** Remaining: T22 (CLI vending — investigate first) is backlog. Discrete polish tasks all shipped.
+- **Bundle sizes** (post-T23 fix): main JS 146 KB / 48 KB gz (was 554/116 before T23), worker unchanged at 459 KB. The heavy stats path lazy-loads as separate chunks (`stats` 374 KB / 56 KB gz, `parsePolarJson` 33 KB / 10 KB gz, `fflate/browser` 32 KB / 12 KB gz) only after `all-done`.
+- **Branded hero** (Polar red `#DA291C` + Strava orange `#FC4C02` with HeartPulse + Activity lucide icons). Trademark-safe — no Polar/Strava logos used.
+- **Dark mode** — follows system preference by default; manual cycle toggle in header (Sun/Moon/Laptop).
+- **Live at** https://leewc.com/polar-to-strava-fit/.
 - **Repo public** at https://github.com/leewc/polar-to-strava-fit with full plan, decisions log, and per-wave telemetry.
 
 ## Cumulative state at end of Wave 4 (post-T14, before T20)
