@@ -1,5 +1,26 @@
 @import 'tailwindcss';
 
+/* Tailwind v4 dark-mode wiring (T21).
+ *
+ * In v4 the `dark:` variant is NOT auto-class-based the way v3's `darkMode:
+ * 'class'` flag made it. Instead we declare a custom variant that activates
+ * when an ancestor (or the element itself) has `class="dark"`. The
+ * `&:where(...)` form means we don't bump specificity, so utilities still
+ * compose normally.
+ *
+ * The class on `<html>` is driven by `lib/theme.ts`, which:
+ *   - reads localStorage on import (single side effect) so the first paint is
+ *     correct and there's no flash-of-wrong-theme,
+ *   - defaults to 'system' (follows `prefers-color-scheme: dark`),
+ *   - exposes `setTheme()` for the manual toggle in App.svelte's header.
+ *
+ * The complete `.dark { ... }` HSL token block is below in @layer base — those
+ * variables already feed @theme color tokens (--color-background, etc.), so
+ * every shadcn primitive and every `bg-muted` / `text-foreground` / etc. just
+ * works once `.dark` is on the root element.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* shadcn-svelte CSS variables. The shadcn-svelte init normally drops these in;
    inlining the default neutral theme here so the scaffold renders correctly
    before T8-A runs `pnpm dlx shadcn-svelte@latest init`. */

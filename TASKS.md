@@ -32,6 +32,7 @@ Status legend: 🟢 done · 🟡 in-progress · ⚪ pending · 🔵 user step ·
 | 19 | T19: fix sample-zip 'invalid zip data' (URL was wrong) + content-type guard + 5 fetch tests | 🟢 | `6fa03f4` |
 | 14 | T14: stats dashboard (Best Efforts 400m–HM + totals) | 🟢 | `b8781b9` (merged via `2e8c469`); StatsCard renders between Stage 4 and 5 |
 | 20 | T20: marketing/FAQ section below the wizard | 🟢 | `485861a` (merged via `2ac910d`); MarketingSection with 6 FAQ entries (AI transparency, Why-this-tool, FIT-vs-TCX, Strava warnings, no-OAuth, offline) + footer |
+| 21 | T21: dark mode (follow system preference + optional manual cycle toggle) | 🟢 | Tailwind v4 `@custom-variant dark` + `lib/theme.ts` (system/light/dark, localStorage roundtrip, matchMedia listener) + Sun/Moon/Laptop header toggle. 10 new theme tests; 160 pass + 1 skip; 0 type errors. |
 
 ## In progress / pending
 

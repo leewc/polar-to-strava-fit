@@ -52,6 +52,8 @@ use `/usage` in Claude Code for the authoritative session totals.
 | ↳ T14 stats dashboard (Best Efforts + totals) | ✅ | (incl. above) | (incl.) | (incl.) | `b8781b9` |
 | **Wave 5 (1 agent in worktree)** | ✅ PASS | **84,101** | **32** | ~4.5m | merged 2026-06-03 via `2ac910d` |
 | ↳ T20 marketing/FAQ section below the wizard | ✅ | (incl. above) | (incl.) | (incl.) | `485861a` |
+| **Wave 6 (1 agent in worktree)** | ✅ PASS | n/a | n/a | n/a | (T21 dark mode) |
+| ↳ T21 dark mode (system pref + manual cycle toggle) | ✅ | n/a | n/a | n/a | (this commit) |
 | **Total sub-agent work — project complete** | | **~1.50M** | **~817** | | |
 
 \*Worktree fan-out durations are wall-clock max-of-4 since they ran in parallel; actual CPU time was the sum.

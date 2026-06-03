@@ -65,7 +65,16 @@
     Sparkles,
     HeartPulse,
     Activity,
+    Sun,
+    Moon,
+    Laptop,
   } from 'lucide-svelte'
+  import {
+    getTheme,
+    setTheme,
+    watchSystemTheme,
+    type Theme,
+  } from './lib/theme'
 
   // ---------------------------------------------------------------------------
   // State machine
@@ -511,6 +520,37 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Theme toggle (T21). The module-load side effect in `./lib/theme` already
+  // applied the saved/system theme before mount. Here we just track the user's
+  // current selection so the icon in the header reflects it, and re-apply on
+  // click. While in 'system' mode, we also subscribe to OS-level changes so
+  // the page updates live without a reload.
+  // ---------------------------------------------------------------------------
+  let theme = $state<Theme>(getTheme())
+  function cycleTheme(): void {
+    // light → dark → system → light …
+    const next: Theme =
+      theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'
+    theme = next
+    setTheme(next)
+  }
+  $effect(() => {
+    if (theme !== 'system') return
+    const unsubscribe = watchSystemTheme(() => {
+      // Re-apply 'system' so the .dark class flips along with the OS.
+      setTheme('system')
+    })
+    return unsubscribe
+  })
+  const themeLabel = $derived(
+    theme === 'light'
+      ? 'Light theme — click for dark'
+      : theme === 'dark'
+        ? 'Dark theme — click to follow system'
+        : 'System theme — click for light',
+  )
+
+  // ---------------------------------------------------------------------------
   // Copy-to-clipboard for the Strava upload URL.
   // ---------------------------------------------------------------------------
   let stravaUrlCopied = $state(false)
@@ -548,12 +588,34 @@
         Convert your Polar export to Strava-ready FIT — locally in your browser.
       </p>
     </div>
-    {#if file !== null}
-      <Button variant="ghost" size="sm" onclick={startOver} class="shrink-0">
-        <RotateCcw class="size-4 mr-1" aria-hidden="true" />
-        Start over
+    <div class="flex shrink-0 items-center gap-1">
+      <!-- Theme toggle (T21). Always visible; cycles light → dark → system.
+           Shows only the icon for the current state. The actual theme switch
+           is the .dark class on <html>, applied by setTheme(); shadcn tokens
+           pick it up via @custom-variant. -->
+      <Button
+        variant="ghost"
+        size="sm"
+        onclick={cycleTheme}
+        class="size-8 p-0"
+        aria-label={themeLabel}
+        title={themeLabel}
+      >
+        {#if theme === 'light'}
+          <Sun class="size-4" aria-hidden="true" />
+        {:else if theme === 'dark'}
+          <Moon class="size-4" aria-hidden="true" />
+        {:else}
+          <Laptop class="size-4" aria-hidden="true" />
+        {/if}
       </Button>
-    {/if}
+      {#if file !== null}
+        <Button variant="ghost" size="sm" onclick={startOver}>
+          <RotateCcw class="size-4 mr-1" aria-hidden="true" />
+          Start over
+        </Button>
+      {/if}
+    </div>
   </header>
 
   {#if fatalError}
