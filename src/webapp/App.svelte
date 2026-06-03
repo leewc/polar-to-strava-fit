@@ -59,6 +59,10 @@
   /** Manifest sessions parsed from the ZIP (stage 2 input). */
   let manifest = $state<ManifestEntry[]>([])
 
+  /** Have we received the `manifest` event yet? Lets us distinguish the
+   *  "still parsing" state from "parsed but found zero sessions". */
+  let manifestReceived = $state(false)
+
   /** Selected file names — for now everything is selected; UI wires this in
    *  when ManifestList lands. The ZIP packs everything that completes. */
   let selected = $state<Set<string>>(new Set())
@@ -116,6 +120,7 @@
     switch (event.kind) {
       case 'manifest': {
         manifest = event.sessions
+        manifestReceived = true
         // Default-select every session — matches the manifest stage UX
         // ("29 sessions ready. Convert all →").
         selected = new Set(event.sessions.map((s) => s.fileName))
@@ -185,12 +190,33 @@
     outFitBlob = null
     allDoneSummary = null
     manifest = []
+    manifestReceived = false
     progress = {}
     selected = new Set()
     const w = ensureWorker()
     w.postMessage({ type: 'start', file: picked })
     // Stage 1 is now complete; the manifest event will move us to 2.
     currentStage = 2
+  }
+
+  /** Reset everything back to stage 1 so the user can drop a different ZIP.
+   *  Also tears down the worker — a fresh one spawns on the next file pick.
+   *  Object URLs from the previous run are revoked by the existing $effects
+   *  via the `outFitBlob`/`progress` state changes. */
+  function startOver(): void {
+    file = null
+    fatalError = null
+    outFitBlob = null
+    allDoneSummary = null
+    manifest = []
+    manifestReceived = false
+    progress = {}
+    selected = new Set()
+    if (worker) {
+      worker.terminate()
+      worker = null
+    }
+    currentStage = 1
   }
 
   /** File-input handler used by the inline drop zone. */
@@ -320,11 +346,18 @@
 </script>
 
 <main class="mx-auto max-w-3xl p-6 sm:p-10 space-y-6">
-  <header>
-    <h1 class="text-3xl font-semibold tracking-tight">Polar → Strava</h1>
-    <p class="mt-1 text-muted-foreground">
-      Convert your Polar export to Strava-ready FIT — locally in your browser.
-    </p>
+  <header class="flex items-start justify-between gap-4">
+    <div>
+      <h1 class="text-3xl font-semibold tracking-tight">Polar → Strava</h1>
+      <p class="mt-1 text-muted-foreground">
+        Convert your Polar export to Strava-ready FIT — locally in your browser.
+      </p>
+    </div>
+    {#if file !== null}
+      <Button variant="ghost" size="sm" onclick={startOver} class="shrink-0">
+        Start over
+      </Button>
+    {/if}
   </header>
 
   {#if fatalError}
@@ -396,42 +429,67 @@
         {/if}
       </button>
     </Card.Header>
-    {#if stage2State === 'active' && manifest.length > 0}
+    {#if stage2State === 'active'}
       <Card.Content>
-        <!-- Inline manifest list; T9-A's <ManifestList sessions={…} bind:selected />
-             swaps in here. -->
-        <ul class="divide-y divide-border rounded-md border">
-          {#each manifest as entry (entry.fileName)}
-            <li class="flex items-center justify-between gap-3 px-3 py-2 text-sm">
-              <div class="flex min-w-0 flex-1 items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={selected.has(entry.fileName)}
-                  onchange={(e) => {
-                    const next = new Set(selected)
-                    if ((e.target as HTMLInputElement).checked) next.add(entry.fileName)
-                    else next.delete(entry.fileName)
-                    selected = next
-                  }}
-                  aria-label="Include {entry.fileName}"
-                />
-                <span class="font-mono text-xs text-muted-foreground">
-                  {fmtDate(entry.startTime)}
-                </span>
-                <Badge variant="secondary">{entry.sportLabel}</Badge>
-                <span class="truncate">{entry.sessionName}</span>
-                <span class="ml-auto text-xs text-muted-foreground">
-                  {fmtDuration(entry.durationSec)} · {entry.hasGps ? 'GPS' : 'indoor'}
-                </span>
-              </div>
-            </li>
-          {/each}
-        </ul>
-        <div class="mt-4 flex justify-end">
-          <Button onclick={() => (currentStage = 3)}>
-            Convert {selected.size} →
-          </Button>
-        </div>
+        {#if !manifestReceived}
+          <!-- Pipeline is parsing the ZIP; manifest event hasn't arrived yet. -->
+          <div class="flex items-center gap-3 py-4 text-sm text-muted-foreground">
+            <span class="inline-block h-3 w-3 animate-pulse rounded-full bg-current" aria-hidden="true"></span>
+            Reading ZIP…
+          </div>
+        {:else if manifest.length === 0}
+          <!-- Manifest came back empty. Most common cause: the ZIP isn't a Polar bulk export. -->
+          <div class="space-y-3 rounded-md border border-dashed border-border bg-muted/30 p-4 text-sm">
+            <p class="font-medium">No training sessions found in this ZIP.</p>
+            <p class="text-muted-foreground">
+              This converter looks for entries named
+              <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">training-session-*.json</code>
+              — the format Polar Flow uses in its bulk-export ZIP. If you uploaded a different kind of file,
+              try downloading your data again from
+              <a class="underline" href="https://flow.polar.com/" target="_blank" rel="noreferrer">flow.polar.com</a>
+              under <em>Settings → Account → Export training data</em>.
+            </p>
+            <div class="flex justify-end">
+              <Button onclick={startOver}>← Try a different file</Button>
+            </div>
+          </div>
+        {:else}
+          <!-- Inline manifest list; T9-A's <ManifestList sessions={…} bind:selected />
+               swaps in here. -->
+          <ul class="divide-y divide-border rounded-md border">
+            {#each manifest as entry (entry.fileName)}
+              <li class="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                <div class="flex min-w-0 flex-1 items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(entry.fileName)}
+                    onchange={(e) => {
+                      const next = new Set(selected)
+                      if ((e.target as HTMLInputElement).checked) next.add(entry.fileName)
+                      else next.delete(entry.fileName)
+                      selected = next
+                    }}
+                    aria-label="Include {entry.fileName}"
+                  />
+                  <span class="font-mono text-xs text-muted-foreground">
+                    {fmtDate(entry.startTime)}
+                  </span>
+                  <Badge variant="secondary">{entry.sportLabel}</Badge>
+                  <span class="truncate">{entry.sessionName}</span>
+                  <span class="ml-auto text-xs text-muted-foreground">
+                    {fmtDuration(entry.durationSec)} · {entry.hasGps ? 'GPS' : 'indoor'}
+                  </span>
+                </div>
+              </li>
+            {/each}
+          </ul>
+          <div class="mt-4 flex justify-between gap-3">
+            <Button variant="ghost" onclick={startOver}>← Use a different file</Button>
+            <Button onclick={() => (currentStage = 3)}>
+              Convert {selected.size} →
+            </Button>
+          </div>
+        {/if}
       </Card.Content>
     {/if}
   </Card.Root>
