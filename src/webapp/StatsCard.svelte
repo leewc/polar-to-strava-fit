@@ -21,7 +21,7 @@
 <script lang="ts">
   import type { StatsReport } from '@core/stats'
   import * as Card from '$lib/components/ui/card'
-  import { Activity, Clock, MapPin, Mountain, Trophy } from 'lucide-svelte'
+  import { Activity, Clock, Info, MapPin, Mountain, Trophy } from 'lucide-svelte'
 
   let { stats }: { stats: StatsReport | null } = $props()
 
@@ -83,8 +83,20 @@
       <!-- ─── Best Efforts ─── -->
       {#if populatedBest.length > 0}
         <section data-testid="stats-best-efforts">
-          <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <h3 class="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Best Efforts
+            <!-- T24: explicit (i) hover/title affordance noting that Best
+                 Efforts is currently Running-only. Other sport families
+                 (cycling, swimming, hiking) would each need their own
+                 reference distances; if/when an export contains them, this
+                 expands. -->
+            <span
+              class="cursor-help"
+              title="Best Efforts is computed for Running sessions only. Cycling, swimming, hiking, etc. each have their own reference distances and aren't included here yet."
+              aria-label="Best Efforts is computed for Running sessions only."
+            >
+              <Info class="size-3.5" aria-hidden="true" />
+            </span>
           </h3>
           <ul class="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
             {#each populatedBest as row (row.label)}

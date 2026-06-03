@@ -72,7 +72,6 @@
     Activity,
     Sun,
     Moon,
-    Laptop,
   } from 'lucide-svelte'
   import {
     getTheme,
@@ -541,28 +540,45 @@
   // click. While in 'system' mode, we also subscribe to OS-level changes so
   // the page updates live without a reload.
   // ---------------------------------------------------------------------------
+  // Two-state UI toggle (light ↔ dark). The library still tracks 'system' as
+  // the implicit default — that's just what you get before clicking. Once you
+  // click, your choice is explicit and persisted; clicking again flips to the
+  // other side. We don't surface a separate 'system' icon; system-following is
+  // simply "haven't clicked yet" and follows the OS via watchSystemTheme.
+  /** Compute initial dark-state from the persisted preference + OS state.
+   *  Pulled out as a plain function (not inline-reading $state vars in
+   *  $state initializers — Svelte 5 warns about that pattern because it'd
+   *  capture only the initial value of the source $state). */
+  function initialIsDark(initial: Theme): boolean {
+    if (initial === 'dark') return true
+    if (initial === 'light') return false
+    return (
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-color-scheme: dark)').matches === true
+    )
+  }
   let theme = $state<Theme>(getTheme())
-  function cycleTheme(): void {
-    // light → dark → system → light …
-    const next: Theme =
-      theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'
+  /** True iff the page is currently rendering in dark mode, regardless of
+   *  whether that came from a manual pick or from following the OS. */
+  let isDark = $state<boolean>(initialIsDark(getTheme()))
+  function toggleTheme(): void {
+    const next: Theme = isDark ? 'light' : 'dark'
     theme = next
+    isDark = next === 'dark'
     setTheme(next)
   }
   $effect(() => {
     if (theme !== 'system') return
-    const unsubscribe = watchSystemTheme(() => {
-      // Re-apply 'system' so the .dark class flips along with the OS.
+    const unsubscribe = watchSystemTheme((osDark) => {
+      // OS flipped while we were in implicit-system mode — re-apply so the
+      // .dark class follows, and update our local isDark snapshot.
       setTheme('system')
+      isDark = osDark
     })
     return unsubscribe
   })
   const themeLabel = $derived(
-    theme === 'light'
-      ? 'Light theme — click for dark'
-      : theme === 'dark'
-        ? 'Dark theme — click to follow system'
-        : 'System theme — click for light',
+    isDark ? 'Dark theme — click for light' : 'Light theme — click for dark',
   )
 
   // ---------------------------------------------------------------------------
@@ -604,24 +620,24 @@
       </p>
     </div>
     <div class="flex shrink-0 items-center gap-1">
-      <!-- Theme toggle (T21). Always visible; cycles light → dark → system.
-           Shows only the icon for the current state. The actual theme switch
-           is the .dark class on <html>, applied by setTheme(); shadcn tokens
-           pick it up via @custom-variant. -->
+      <!-- Theme toggle (T21). Always visible; flips light ↔ dark. System is
+           the implicit default (haven't clicked yet) — the icon shown is
+           always for the CURRENT effective theme, so clicking shows the
+           opposite. The actual switch is the .dark class on <html>, applied
+           by setTheme(); shadcn tokens pick it up via Tailwind v4's
+           @custom-variant in app.css. -->
       <Button
         variant="ghost"
         size="sm"
-        onclick={cycleTheme}
+        onclick={toggleTheme}
         class="size-8 p-0"
         aria-label={themeLabel}
         title={themeLabel}
       >
-        {#if theme === 'light'}
-          <Sun class="size-4" aria-hidden="true" />
-        {:else if theme === 'dark'}
+        {#if isDark}
           <Moon class="size-4" aria-hidden="true" />
         {:else}
-          <Laptop class="size-4" aria-hidden="true" />
+          <Sun class="size-4" aria-hidden="true" />
         {/if}
       </Button>
       {#if file !== null}
