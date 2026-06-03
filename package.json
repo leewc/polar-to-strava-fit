@@ -15,7 +15,8 @@
     "test:e2e": "playwright test",
     "convert": "tsx src/cli/convert.ts",
     "inspect": "tsx src/cli/inspect.ts",
-    "validate": "tsx src/cli/validate.ts"
+    "validate": "tsx src/cli/validate.ts",
+    "build:sample": "node sample/build-sample-zip.mjs"
   },
   "dependencies": {
     "@garmin/fitsdk": "^21.205.0",
