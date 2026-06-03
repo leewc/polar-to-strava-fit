@@ -33,6 +33,7 @@
 
 <script lang="ts">
   import { onDestroy, untrack } from 'svelte'
+  import { slide } from 'svelte/transition'
   import type { ManifestEntry, PipelineEvent } from './pipeline'
   import type { ValidationReport } from '@validate/checks'
   import * as Card from '$lib/components/ui/card'
@@ -54,6 +55,7 @@
     MapPin,
     Dumbbell,
     RotateCcw,
+    Info,
   } from 'lucide-svelte'
 
   // ---------------------------------------------------------------------------
@@ -269,6 +271,29 @@
   )
   const stage5State = $derived(currentStage === 5 ? 'active' : 'pending')
 
+  // ---------------------------------------------------------------------------
+  // "Just-completed" highlight: when currentStage advances past a stage, that
+  // stage briefly gets a ring-2 highlight that fades out. Pure cosmetic — uses
+  // a setTimeout watcher on the previous value of `currentStage`.
+  // ---------------------------------------------------------------------------
+  let justCompletedStage = $state<1 | 2 | 3 | 4 | null>(null)
+  let prevStage = 1
+  let flashTimer: ReturnType<typeof setTimeout> | null = null
+  $effect(() => {
+    const cur = currentStage
+    if (cur > prevStage) {
+      // The stage we just left is now completed.
+      const left = prevStage as 1 | 2 | 3 | 4
+      justCompletedStage = left
+      if (flashTimer) clearTimeout(flashTimer)
+      flashTimer = setTimeout(() => {
+        justCompletedStage = null
+        flashTimer = null
+      }, 1000)
+    }
+    prevStage = cur
+  })
+
   /** Per-session count summary used in the converting-stage progress bar. */
   const progressSummary = $derived.by(() => {
     const values = Object.values(progress)
@@ -339,6 +364,7 @@
     if (outFitUrl) URL.revokeObjectURL(outFitUrl)
     for (const url of Object.values(perFileUrls)) URL.revokeObjectURL(url)
     if (copyResetTimer) clearTimeout(copyResetTimer)
+    if (flashTimer) clearTimeout(flashTimer)
   })
 
   // ---------------------------------------------------------------------------
@@ -404,7 +430,9 @@
   {/if}
 
   <!-- ────────────────────────────── STAGE 1 ────────────────────────────── -->
-  <Card.Root>
+  <Card.Root
+    class={`transition-shadow duration-700 ${justCompletedStage === 1 ? 'ring-2 ring-primary/40' : ''}`}
+  >
     <Card.Header>
       <button
         type="button"
@@ -429,29 +457,33 @@
       </button>
     </Card.Header>
     {#if stage1State === 'active'}
-      <Card.Content>
-        <!-- Inline drop-zone; T9-A's <DropZone bind:file /> swaps in here. -->
-        <label
-          ondrop={handleDrop}
-          ondragover={(e) => e.preventDefault()}
-          class="flex h-40 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/30 p-6 text-center transition-colors hover:border-primary/40 hover:bg-muted/50"
-        >
-          <Upload class="mb-2 size-8 text-muted-foreground" aria-hidden="true" />
-          <span class="text-base font-medium">Drop your Polar export ZIP here</span>
-          <span class="mt-1 text-sm text-muted-foreground">or click to browse</span>
-          <input
-            type="file"
-            accept=".zip,application/zip"
-            class="hidden"
-            onchange={handleInputChange}
-          />
-        </label>
-      </Card.Content>
+      <div transition:slide={{ duration: 250 }}>
+        <Card.Content>
+          <!-- Inline drop-zone; T9-A's <DropZone bind:file /> swaps in here. -->
+          <label
+            ondrop={handleDrop}
+            ondragover={(e) => e.preventDefault()}
+            class="flex h-40 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/30 p-6 text-center transition-colors hover:border-primary/40 hover:bg-muted/50"
+          >
+            <Upload class="mb-2 size-8 text-muted-foreground" aria-hidden="true" />
+            <span class="text-base font-medium">Drop your Polar export ZIP here</span>
+            <span class="mt-1 text-sm text-muted-foreground">or click to browse</span>
+            <input
+              type="file"
+              accept=".zip,application/zip"
+              class="hidden"
+              onchange={handleInputChange}
+            />
+          </label>
+        </Card.Content>
+      </div>
     {/if}
   </Card.Root>
 
   <!-- ────────────────────────────── STAGE 2 ────────────────────────────── -->
-  <Card.Root class={stage2State === 'pending' ? 'opacity-50' : ''}>
+  <Card.Root
+    class={`transition-shadow duration-700 ${stage2State === 'pending' ? 'opacity-50' : ''} ${justCompletedStage === 2 ? 'ring-2 ring-primary/40' : ''}`}
+  >
     <Card.Header>
       <button
         type="button"
@@ -475,11 +507,12 @@
       </button>
     </Card.Header>
     {#if stage2State === 'active'}
+      <div transition:slide={{ duration: 250 }}>
       <Card.Content>
         {#if !manifestReceived}
           <!-- Pipeline is parsing the ZIP; manifest event hasn't arrived yet. -->
           <div class="flex items-center gap-3 py-4 text-sm text-muted-foreground">
-            <span class="inline-block h-3 w-3 animate-pulse rounded-full bg-current" aria-hidden="true"></span>
+            <Loader2 class="size-4 animate-spin" aria-hidden="true" />
             Reading ZIP…
           </div>
         {:else if manifest.length === 0}
@@ -548,11 +581,14 @@
           </div>
         {/if}
       </Card.Content>
+      </div>
     {/if}
   </Card.Root>
 
   <!-- ────────────────────────────── STAGE 3 ────────────────────────────── -->
-  <Card.Root class={stage3State === 'pending' ? 'opacity-50' : ''}>
+  <Card.Root
+    class={`transition-shadow duration-700 ${stage3State === 'pending' ? 'opacity-50' : ''} ${justCompletedStage === 3 ? 'ring-2 ring-primary/40' : ''}`}
+  >
     <Card.Header>
       <button
         type="button"
@@ -578,6 +614,7 @@
       </button>
     </Card.Header>
     {#if stage3State === 'active' || stage3State === 'completed'}
+      <div transition:slide={{ duration: 250 }}>
       <Card.Content>
         <Progress
           value={progressSummary.done}
@@ -593,7 +630,9 @@
         <ul class="mt-3 space-y-1 text-sm">
           {#each manifest as entry (entry.fileName)}
             {@const p = progress[entry.fileName]}
-            <li class="flex items-center justify-between gap-2">
+            <li
+              class={`flex items-center justify-between gap-2 rounded-sm px-1.5 py-0.5 transition-colors ${p?.status === 'converting' ? 'bg-muted/50 animate-pulse' : ''}`}
+            >
               <span class="flex items-center gap-2">
                 {#if p?.status === 'converting'}
                   <Loader2 class="size-4 animate-spin text-muted-foreground" aria-hidden="true" />
@@ -622,11 +661,14 @@
           {/each}
         </ul>
       </Card.Content>
+      </div>
     {/if}
   </Card.Root>
 
   <!-- ────────────────────────────── STAGE 4 ────────────────────────────── -->
-  <Card.Root class={stage4State === 'pending' ? 'opacity-50' : ''}>
+  <Card.Root
+    class={`transition-shadow duration-700 ${stage4State === 'pending' ? 'opacity-50' : ''} ${justCompletedStage === 4 ? 'ring-2 ring-primary/40' : ''}`}
+  >
     <Card.Header>
       <button
         type="button"
@@ -672,9 +714,69 @@
                     <li>{msg}</li>
                   {/each}
                 </ul>
+                {#if w.report.gpsReport}
+                  {@const g = w.report.gpsReport}
+                  <details class="mt-2 rounded-md border border-border/60 bg-background/60 p-2 text-xs">
+                    <summary class="cursor-pointer font-medium">
+                      GPS report — severity: {g.severity}
+                    </summary>
+                    <ul class="mt-1.5 space-y-0.5 pl-1 text-muted-foreground">
+                      <li>max gap: {g.maxGapMeters.toFixed(1)} m</li>
+                      <li>jumps over 50 m: {g.jumpsOver50m.length}</li>
+                      {#if g.pathOverDistanceRatio !== undefined}
+                        <li>
+                          path / recorded distance ratio: {g.pathOverDistanceRatio.toFixed(2)}
+                        </li>
+                      {/if}
+                      <li>haversine path length: {g.pathLengthMeters.toFixed(0)} m</li>
+                      {#if g.recordedDistanceMeters !== undefined}
+                        <li>recorded distance: {g.recordedDistanceMeters.toFixed(0)} m</li>
+                      {/if}
+                    </ul>
+                  </details>
+                {/if}
               </Alert.Description>
             </Alert.Root>
           {/each}
+
+          <!-- ℹ️ Info pane explaining Strava's quality flags. Hidden when no
+               warnings (handled by the outer #else branch above). Copy mirrors
+               README's "Common Strava warnings" section so users get the same
+               story whether they read the README or the webapp. -->
+          <details class="mt-3 rounded-md border bg-muted/20 p-3 text-sm">
+            <summary class="flex cursor-pointer items-center gap-2 font-medium">
+              <Info class="size-4" aria-hidden="true" />
+              About these warnings
+            </summary>
+            <div class="mt-2 space-y-2 text-muted-foreground">
+              <p>
+                Strava runs its own quality checks on uploaded files. When a converted
+                activity surfaces here, it usually maps to one of three Strava-side flags:
+              </p>
+              <ul class="list-disc space-y-1.5 pl-5">
+                <li>
+                  <strong class="text-foreground">"GPS had a bad day"</strong> — the
+                  original Polar tracking has a teleport between two adjacent records.
+                  The converter doesn't touch this; the source data is what's wrong.
+                  The activity still uploads, but Strava won't put it on segment
+                  leaderboards. You can crop the bad segment in Strava if it matters.
+                </li>
+                <li>
+                  <strong class="text-foreground">"May be in a vehicle"</strong> — would
+                  be a converter bug. The km/h → m/s speed-fix in commit
+                  <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">36542eb</code>
+                  already addresses the common cause; if you still see this on a fresh
+                  conversion, please open an issue.
+                </li>
+                <li>
+                  <strong class="text-foreground">Duplicate of activity X</strong> —
+                  Strava deduplicates by start time. If you previously uploaded the same
+                  activity manually, the new upload is rejected. Harmless — your earlier
+                  upload is still there.
+                </li>
+              </ul>
+            </div>
+          </details>
         {/if}
       </Card.Content>
     {/if}
