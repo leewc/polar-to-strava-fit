@@ -22,16 +22,29 @@ Status legend: 🟢 done · 🟡 in-progress · ⚪ pending · 🔵 user step ·
 | 12 | T6.6: GPS-quality detection + warnings + optional crop | 🟢 | `dcd201a` |
 | 9 | Phase 4: webapp + CLI helpers fan-out (waves 1+2) | 🟢 | `cfbd660` `2d5c276` `b3fef3c` `90e030b→d837804` `f290a2b` `5fe8122` |
 | 10 | T11: full Strava batch upload via webapp | 🟢 🔵 | Confirmed working 2026-06-02; webapp produced upload-ready files |
+| 11 | T12: deploy to GitHub Pages | 🟢 | Live at https://leewc.com/polar-to-strava-fit/ (custom CNAME, Cloudflare-fronted). `leewc.github.io/polar-to-strava-fit/` 301-redirects to it. Workflow: `.github/workflows/pages.yml`. |
+| 16 | T16: landing-page README (privacy + how-to-export Polar ZIP) | 🟢 | `46307d5` |
+| 17 | T17: lucide-svelte icons throughout the webapp | 🟢 | `f0def2a` (15 icons across the wizard) |
+| — | Empty-zip dead-end + 'Start over' button | 🟢 | `04a6432` (mid-flight UX fix) |
+| 13 | T13: animations (slide / pulse / ring-flash) + Strava-warnings info pane + per-row GPS report | 🟢 | `50021ea` (merged via `300f8ff`) |
+| 15 | T15: anonymized sample/demo ZIP + 'Try with sample data →' CTA | 🟢 | `feb92ec` (merged via `300f8ff`); 7 sessions, 5 runs + 2 indoor, one with deliberate GPS teleport |
+| 18 | T18: gate `currentStage = 5` on `sessionCount > 0` so empty-manifest stays visible | 🟢 | `300f8ff` (folded into the wave-3b merge) |
+| 19 | T19: fix sample-zip 'invalid zip data' (URL was wrong) + content-type guard + 5 fetch tests | 🟢 | `6fa03f4` |
+| 14 | T14: stats dashboard (Best Efforts 400m–HM + totals) | 🟢 | `b8781b9` (merged via `2e8c469`); StatsCard renders between Stage 4 and 5 |
 
 ## In progress / pending
 
 | # | Task | Status | Notes |
 |---|---|---|---|
-| 11 | T12: deploy to GitHub Pages + write README | 🟢 | Live at https://leewc.com/polar-to-strava-fit/ (custom CNAME, Cloudflare-fronted). leewc.github.io/polar-to-strava-fit/ 301-redirects to it. README polish folded into T16. |
-| 13 | T13: animations + validation info pane | ⚪ | Post-T12 polish: spinner during convert, pulse during validate, ℹ️ Strava-warnings explainer pane, per-row gpsReport tooltip |
-| 14 | T14: stats dashboard (Best Efforts, totals) | ⚪ | Post-conversion summary mirroring Strava's Best Efforts widget (400m, 1/2mi, 1K, …, Half-Marathon) plus activity/distance/time/elev totals |
-| 15 | T15: bundle a sample/demo ZIP for one-click try | ⚪ | Ship 5 runs + 2 indoor workouts, fully anonymized via `scripts/anonymize-fixture.mjs`. "Try with sample data" CTA on the drop zone. Ships from `public/` so Vite bundles it. |
-| 16 | T16: marketing + how-to-procure-the-zip docs | ⚪ | Turn README into a landing page: hook, screenshots, privacy claim, step-by-step "how to get your Polar export ZIP" with screenshots, FAQ, deploy URL CTA. |
+| 20 | T20: marketing/FAQ section below the wizard | 🟡 | Dispatched to wave-5 worktree as of 2026-06-03. 6 FAQ entries including AI-transparency Q ("yes, ~all of it; ~$60 cost; audit on GitHub") and the framing "Why did you build this?" Q. |
+
+## Backlog (no commitments)
+
+- Screenshots of the wizard for the README + marketing section
+- PWA service worker for true offline mode
+- Multi-lap support (no real Polar data has lap markers in the user's export, but other exports do)
+- Cycling sessions (none in this dataset; only Running + Indoor)
+- Strava OAuth direct upload — explicitly out of scope (privacy/one-time use)
 
 ## Mid-flight discoveries (logged in `PLAN.md` Decisions)
 
@@ -39,6 +52,9 @@ Status legend: 🟢 done · 🟡 in-progress · ⚪ pending · 🔵 user step ·
 - **2026-06-02** — One real session had a 4.5 km GPS teleport in 1 second. Strava flagged "GPS had a bad day". Converter is faithful; source data is glitched. Spawned T6.6 (detection + optional crop).
 - **2026-06-02** — Wave-2 worktree-isolation merge: T8-A, T9-A, T10-A all installed/wrote shadcn primitives in their own worktrees. T9-A had the most complete (real shadcn-svelte CLI output); T8-A & T10-A's stubs were discarded in favor of T9-A's during the integration commit (`d837804`). Lesson: pin shadcn install to a single agent in future fan-outs.
 - **2026-06-02** — Svelte 5 `$effect` reactive-loop bug in App.svelte's `perFileUrls` URL revoker. Reading `perFileUrls` inside its own effect re-triggered it. Fix: `untrack()` the read. (`5fe8122`)
+- **2026-06-03** — Empty-manifest dead-end. The `all-done` event handler unconditionally pushed `currentStage = 5`, collapsing the stage-2 empty-state UI. Fix: gate the stage-5 transition on `sessionCount > 0`. (T18, `300f8ff`)
+- **2026-06-03** — Sample-zip CTA fetched via `import.meta.url` resolved relative to the JS bundle at `/polar-to-strava-fit/assets/`, hitting a 404 and getting the SPA fallback HTML which fflate then choked on. Fix: use `import.meta.env.BASE_URL` (Vite-provided, deploy-base-aware) + content-type guard for clearer error. (T19, `6fa03f4`)
+- **2026-06-03** — Wave-2 lessons applied to wave-3a/b/4: pre-installing shadcn before fan-out (T17 single-agent) prevented the duplicate-shadcn-install fight from wave-2. Subsequent waves merged with at most one minor App.svelte conflict per wave (icon imports + Stage 1 markup), all auto-resolvable.
 
 ## Artifacts in this repo
 
@@ -46,10 +62,14 @@ Status legend: 🟢 done · 🟡 in-progress · ⚪ pending · 🔵 user step ·
 - `RESEARCH.md` — research notes on FIT format, Polar→FIT sport mapping, `@garmin/fitsdk` audit
 - `TASKS.md` — this file
 - `WORK_LOG.md` — per-task agent telemetry (tokens, tool uses, durations) + session cost
+- `docs/research/*` — original research artifacts (Strava formats, FIT format + Polar mapping)
 - `scripts/anonymize-fixture.mjs` — reusable PII-stripper for Polar exports
+- `sample/build-sample-zip.mjs` — generates `public/sample-polar-export.zip` from a real export
 - `fixtures/*.json` — three anonymized training-session fixtures (one large GPS, one tiny indoor, one mid-size GPS with a known teleport)
-- `src/core/*` — pure conversion logic (browser- and Node-portable)
+- `public/sample-polar-export.zip` — committed; the "Try with sample data" demo file (337KB, 7 sessions)
+- `src/core/*` — pure conversion logic (browser- and Node-portable): types, parsePolarJson (JSON5 + reviver), polarToFit, sportMap (171 mappings), time, stats
 - `src/validate/*` — round-trip + conservation + GPS-quality checks
-- `src/webapp/*` — Svelte 5 wizard UI + Web Worker pipeline
+- `src/webapp/*` — Svelte 5 wizard UI + Web Worker pipeline + StatsCard + (T20) MarketingSection
 - `src/cli/*` — Node CLI: `pnpm convert` / `pnpm inspect` / `pnpm validate`
+- `.github/workflows/pages.yml` — deploys main → GitHub Pages on every push
 - `out/` — gitignored; contains the user's converted .fit files when `pnpm convert` runs

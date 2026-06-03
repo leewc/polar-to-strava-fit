@@ -30,8 +30,29 @@ use `/usage` in Claude Code for the authoritative session totals.
 | ↳ T7-A webapp pipeline + worker (worktree-2) | ✅ | (incl.) | (incl.) | (incl.) | `cfbd660` |
 | ↳ T7-B-2 cli-inspect (worktree-3) | ✅ | (incl.) | (incl.) | (incl.) | `2d5c276` |
 | ↳ T7-B-3 cli-validate (worktree-4) | ✅ | (incl.) | (incl.) | (incl.) | `b3fef3c` |
-| pipeline.test fixup: assert running-recent gps warning (main) | ✅ | n/a | n/a | n/a | (this commit) |
-| Subtotal sub-agent work | | **~700k** | **~360** | | |
+| pipeline.test fixup: assert running-recent gps warning (main) | ✅ | n/a | n/a | n/a | (commit `6fff0ad`) |
+| **Phase 4 wave-2 fan-out (3 agents in worktrees)** | ✅ all PASS | **287,150** | **214** | ~15m | merged 2026-06-02 via `d837804` |
+| ↳ T8-A App.svelte 5-stage wizard (worktree-1) | ✅ | (incl. above) | (incl.) | (incl.) | `90e030b` (cherry-picked into `d837804`) |
+| ↳ T9-A row components + shadcn install (worktree-2) | ✅ | (incl.) | (incl.) | (incl.) | `f290a2b` |
+| ↳ T10-A SportOverridePanel (worktree-3) | ✅ | (incl.) | (incl.) | (incl.) | `5768c8b` (cherry-picked into `d837804`) |
+| Wave-2 integration: cherry-pick T8-A + T10-A onto T9-A's shadcn (main) | ✅ | n/a | n/a | n/a | `d837804` |
+| fix: untrack `perFileUrls` (Svelte 5 effect_update_depth_exceeded) | ✅ | n/a | n/a | n/a | `5fe8122` |
+| T11 full Strava batch upload | ✅ 🔵 | 0 | 0 | (manual) | n/a (validated working 2026-06-02) |
+| T12 GitHub Pages deploy + workflow + custom CNAME | ✅ | n/a | n/a | n/a | `6f87a90` (workflow), live at https://leewc.com/polar-to-strava-fit/ |
+| fix: empty-zip dead-end + 'Start over' button (main) | ✅ | n/a | n/a | n/a | `04a6432` |
+| **Wave 3a fan-out (2 agents in worktrees)** | ✅ all PASS | **100,164** | **67** | ~5.3m | merged 2026-06-02 via `7be4f74` |
+| ↳ T17 lucide-svelte icons (worktree-1) | ✅ | (incl. above) | (incl.) | (incl.) | `f0def2a` |
+| ↳ T16 landing-page README (worktree-2) | ✅ | (incl.) | (incl.) | (incl.) | `46307d5` |
+| **Wave 3b fan-out (2 agents in worktrees)** | ✅ all PASS | **208,102** | **91** | ~12m | merged 2026-06-02 via `300f8ff` |
+| ↳ T13 animations + Strava-warnings info pane (worktree-1) | ✅ | (incl. above) | (incl.) | (incl.) | `50021ea` |
+| ↳ T15 anonymized sample-zip + 'Try with sample data' CTA (worktree-2) | ✅ | (incl.) | (incl.) | (incl.) | `feb92ec` |
+| Wave-3b integration + T18 fix (gate stage 5 on sessionCount > 0) | ✅ | n/a | n/a | n/a | `300f8ff` |
+| T19 fix: sample-zip 'invalid zip data' (URL + content-type guard) + 5 tests (main) | ✅ | n/a | n/a | n/a | `6fa03f4` |
+| **Wave 4 (1 agent in worktree)** | ✅ PASS | **127,030** | **53** | ~9.5m | merged 2026-06-03 via `2e8c469` |
+| ↳ T14 stats dashboard (Best Efforts + totals) | ✅ | (incl. above) | (incl.) | (incl.) | `b8781b9` |
+| **Wave 5 (1 agent in worktree)** | 🟡 in flight | TBD | TBD | (started 2026-06-03 ~00:36 PT) | TBD |
+| ↳ T20 marketing/FAQ section below the wizard | 🟡 | (in flight) | (in flight) | (in flight) | TBD |
+| Subtotal sub-agent work through wave 5 dispatch | | **~1.42M** | **~785** | | |
 
 \*Worktree fan-out durations are wall-clock max-of-4 since they ran in parallel; actual CPU time was the sum.
 
@@ -45,6 +66,16 @@ use `/usage` in Claude Code for the authoritative session totals.
 - **One real session flagged** by T6.6 GPS detection (May 23 — the same one Strava rejected during T6.5).
 - **Two Strava uploads accepted** during T6.5: indoor session + April 18 GPS run.
 - **Worktree isolation works.** Wave-1 ran 4 agents in parallel against disjoint paths (`src/validate/*`, `src/webapp/*`, `src/cli/inspect.ts`, `src/cli/validate.ts`, plus a `package.json` happy-dom add) with zero merge conflicts.
+
+## Cumulative state at end of Wave 4 (post-T14, before T20)
+
+- **148 tests pass + 1 skipped** across 21 test files (was 116 after wave-1; +32 across waves 2/3a/3b/4).
+- **0 TypeScript errors** (`pnpm check` clean).
+- **Bundle**: 125 KB JS / 42 KB gzipped main bundle, 459 KB worker bundle. Build time ~2s.
+- **Live at** https://leewc.com/polar-to-strava-fit/ (custom CNAME via Cloudflare; `leewc.github.io` 301-redirects). Auto-deploys via `.github/workflows/pages.yml` on every push to main.
+- **Real Strava upload validated end-to-end.** All 27 of the user's real Polar sessions converted via the webapp and uploaded to Strava successfully.
+- **Five user-reported bugs caught & fixed during testing** (in order): Polar km/h vs FIT m/s speed (T6.5 → `36542eb`); GPS teleport in source data → spawned T6.6 detection; Svelte 5 effect-loop in URL revoker (`5fe8122`); empty-zip dead-end (`04a6432` + T18 `300f8ff`); sample-zip URL resolution (T19 `6fa03f4`).
+- **Worktree-isolation lessons.** Wave 2's 3-way shadcn-install fight resolved by single-agent shadcn install in T17 before subsequent waves. Wave 3b's two App.svelte edits in different regions auto-merged with one minor manual conflict resolution. Wave 4's stats agent rebased cleanly because main hadn't moved into its file regions.
 
 ## Session totals (from `/usage` after T5 commit)
 
@@ -78,6 +109,15 @@ RESEARCH.md across sub-agents; without caching the cost would be roughly
 spend through T6, T7-B, Phase 4 fan-out, and deploy: another ~$30–60
 depending on iteration loops.
 
+> Note: this $60.53 number is an **early-stage** snapshot, captured right
+> after T5. Subsequent waves (T6 through T20) added significant
+> sub-agent work. A current-state recapture from `/usage` would be more
+> accurate; until that happens the table above understates the total.
+> Rough estimate using sub-agent token totals (~1.42M tokens at Opus 4.7
+> rates with 80–90% cache hit) suggests cumulative cost in the
+> $90–$140 range as of the wave-5 dispatch. **The user can re-run
+> `/usage` for the authoritative current figure.**
+
 ## Cost notes
 
 - I (the main-thread Claude) cannot directly read your session-level token total
@@ -92,8 +132,7 @@ depending on iteration loops.
 
 ## Next planned dispatches
 
-- T5 polarToFit — main-thread (single-author, complex)
-- T6 validation/checks — main-thread or single sub-agent
-- T7-B cli-convert — single sub-agent
-- T6.5 Strava acceptance gate — manual user step (zero tokens)
-- Phase 4 fan-out (T7-A through T10-A + T7-B-2/3) — sub-agents in parallel
+After wave 5 (T20 marketing/FAQ) lands, no further waves are queued. The
+backlog (see TASKS.md) — screenshots, PWA, multi-lap support, cycling
+support — is opportunistic, not committed. The project is at 19/20 done
+as of the wave-5 dispatch (T20 in flight); reaches 20/20 once T20 merges.
