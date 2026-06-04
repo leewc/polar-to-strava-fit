@@ -1,13 +1,41 @@
 {
   "name": "polar-to-strava-fit",
-  "description": "Convert your Polar bulk export to Strava-ready FIT files in your browser. Privacy-first, static-hosted.",
+  "description": "Convert your Polar bulk export to Strava-ready FIT files. Webapp + Node CLI; privacy-first, no upload.",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "license": "MIT",
+  "bin": {
+    "polar-to-strava-fit": "bin/polar-to-strava-fit.mjs"
+  },
+  "files": [
+    "bin/polar-to-strava-fit.mjs",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "polar",
+    "polar-flow",
+    "strava",
+    "fit",
+    "fit-file",
+    "fitness",
+    "converter",
+    "training",
+    "export"
+  ],
+  "homepage": "https://leewc.com/polar-to-strava-fit/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/leewc/polar-to-strava-fit.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:cli": "tsup",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
     "test": "vitest --run",
@@ -16,16 +44,12 @@
     "convert": "tsx src/cli/convert.ts",
     "inspect": "tsx src/cli/inspect.ts",
     "validate": "tsx src/cli/validate.ts",
-    "build:sample": "node sample/build-sample-zip.mjs"
+    "build:sample": "node sample/build-sample-zip.mjs",
+    "prepublishOnly": "pnpm build:cli"
   },
   "dependencies": {
     "@garmin/fitsdk": "^21.205.0",
-    "adm-zip": "^0.5.16",
-    "clsx": "^2.1.1",
-    "fflate": "^0.8.2",
-    "json5": "^2.2.3",
-    "lucide-svelte": "^1.0.1",
-    "tailwind-merge": "^2.5.5"
+    "adm-zip": "^0.5.16"
   },
   "devDependencies": {
     "@internationalized/date": "^3.12.2",
@@ -38,12 +62,18 @@
     "@types/node": "^24.12.3",
     "@vitest/browser": "^4.1.6",
     "bits-ui": "^2.18.1",
+    "clsx": "^2.1.1",
+    "fflate": "^0.8.2",
     "happy-dom": "^20.9.0",
+    "json5": "^2.2.3",
+    "lucide-svelte": "^1.0.1",
     "playwright": "^1.50.0",
     "svelte": "^5.55.5",
     "svelte-check": "^4.4.8",
+    "tailwind-merge": "^2.5.5",
     "tailwind-variants": "^3.2.2",
     "tailwindcss": "^4.1.21",
+    "tsup": "^8.5.1",
     "tsx": "^4.20.6",
     "typescript": "~6.0.2",
     "vite": "^8.0.12",

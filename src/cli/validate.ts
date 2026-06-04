@@ -134,15 +134,22 @@ function printRow(
   console.log(`${red('✗')} ${fileName}${tail}`)
 }
 
-function main(): number {
-  const [, , outDir] = process.argv
+/** Subcommand entrypoint usable by the standalone script (`tsx validate.ts ...`)
+ *  AND by the bundled `polar-to-strava-fit validate ...` dispatcher. Argv is
+ *  the tail (everything after the subcommand name). */
+export function runValidateCli(argv: readonly string[], usage: string): number {
+  const [outDir] = argv
   if (!outDir) {
-    process.stderr.write('Usage: pnpm validate <out-dir>\n')
+    process.stderr.write(`${usage}\n`)
     return 2
   }
   const summary = runValidate(outDir)
   // Per task spec: exit 0 if no decode failures. Warnings don't flip exit code.
   return summary.failed > 0 ? 1 : 0
+}
+
+function main(): number {
+  return runValidateCli(process.argv.slice(2), 'Usage: pnpm validate <out-dir>')
 }
 
 function invokedDirectly(): boolean {
@@ -156,6 +163,13 @@ function invokedDirectly(): boolean {
   }
 }
 
-if (invokedDirectly()) {
+// See convert.ts for the long version: bundling defeats the bare
+// `invokedDirectly()` guard, so we also check argv[1]'s basename.
+function invokedAsThisScript(): boolean {
+  if (!invokedDirectly()) return false
+  const entry = process.argv[1] ?? ''
+  return /(^|[\\/])validate\.[mc]?[tj]s$/.test(entry)
+}
+if (invokedAsThisScript()) {
   process.exit(main())
 }

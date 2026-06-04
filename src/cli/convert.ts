@@ -191,14 +191,23 @@ export function runConvert(zipPath: string, outDir: string): ConvertResult {
   return { failed, count, fallbackCount }
 }
 
-function main(): number {
-  const [, , zipPath, outDir] = process.argv
+/** Subcommand entrypoint usable by the standalone script (`tsx convert.ts ...`)
+ *  AND by the bundled `polar-to-strava-fit convert ...` dispatcher in
+ *  `src/cli/bin.ts`. Argv is the tail (everything after the subcommand name);
+ *  exit code semantics match the script form: 2 on usage error, 1 on
+ *  conversion failure, 0 on success. */
+export function runConvertCli(argv: readonly string[], usage: string): number {
+  const [zipPath, outDir] = argv
   if (!zipPath || !outDir) {
-    process.stderr.write('Usage: pnpm convert <zip-path> <out-dir>\n')
+    process.stderr.write(`${usage}\n`)
     return 2
   }
   const result = runConvert(zipPath, outDir)
   return result.failed ? 1 : 0
+}
+
+function main(): number {
+  return runConvertCli(process.argv.slice(2), 'Usage: pnpm convert <zip-path> <out-dir>')
 }
 
 // Run-as-script check: only execute `main` when invoked directly (not when
@@ -215,6 +224,16 @@ function invokedDirectly(): boolean {
   }
 }
 
-if (invokedDirectly()) {
+// The published `polar-to-strava-fit` bin bundles all three CLI modules
+// together; tsup rewrites `import.meta.url` so EVERY module's
+// `invokedDirectly()` would return true and race their `main`s. Add a
+// basename guard: this script self-runs only if argv[1] looks like
+// `convert.ts`/`convert.js`/`convert.mjs` — never the bundled bin.
+function invokedAsThisScript(): boolean {
+  if (!invokedDirectly()) return false
+  const entry = process.argv[1] ?? ''
+  return /(^|[\\/])convert\.[mc]?[tj]s$/.test(entry)
+}
+if (invokedAsThisScript()) {
   process.exit(main())
 }

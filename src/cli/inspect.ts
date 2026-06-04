@@ -99,14 +99,21 @@ export function inspectFit(bytes: Uint8Array, options: { summary: boolean }): In
   }
 }
 
-function main(argv: readonly string[]): number {
+/** Subcommand entrypoint usable by the standalone script (`tsx inspect.ts ...`)
+ *  AND by the bundled `polar-to-strava-fit inspect ...` dispatcher. Argv is
+ *  the tail (everything after the subcommand name). */
+export function runInspectCli(argv: readonly string[], usage: string): number {
+  return main(argv, usage)
+}
+
+function main(argv: readonly string[], usage = 'Usage: pnpm inspect <fit-file> [--summary]'): number {
   let opts: InspectOptions
   try {
     opts = parseArgs(argv)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     process.stderr.write(`${msg}\n`)
-    process.stderr.write('Usage: pnpm inspect <fit-file> [--summary]\n')
+    process.stderr.write(`${usage}\n`)
     return 2
   }
 
@@ -160,7 +167,15 @@ function invokedDirectly(): boolean {
   }
 }
 
-if (invokedDirectly()) {
+// See convert.ts for the long version: bundling defeats the bare
+// `invokedDirectly()` guard, so we also check argv[1]'s basename matches
+// this file's expected name.
+function invokedAsThisScript(): boolean {
+  if (!invokedDirectly()) return false
+  const entry = process.argv[1] ?? ''
+  return /(^|[\\/])inspect\.[mc]?[tj]s$/.test(entry)
+}
+if (invokedAsThisScript()) {
   const code = main(process.argv.slice(2))
   // Wait for stdout to drain before exiting. A 173 KB write through
   // `process.stdout` (a non-blocking pipe in our test harness) can be
