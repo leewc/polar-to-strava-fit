@@ -59,8 +59,8 @@ use `/usage` in Claude Code for the authoritative session totals.
 | Polish: 2-state theme toggle + branded favicon + T24 tooltip (main) | ✅ | n/a | n/a | n/a | `20044fd` |
 | **Wave 7 (1 agent, in flight)** | 🟡 | TBD | TBD | (started 2026-06-03 ~12:55 PT) | TBD |
 | ↳ T22 CLI vending feasibility (npx polar-to-strava-fit) | 🟡 | (in flight) | (in flight) | (in flight) | TBD |
-| **Wave 8 (1 agent, in flight, NO COMMIT)** | 🟡 | TBD | TBD | (started 2026-06-03 ~13:08 PT) | uncommitted by design |
-| ↳ T25 Tier-1 multi-sport Best Efforts prototype | 🟡 | (in flight) | (in flight) | (in flight) | (uncommitted — user reviews) |
+| **Wave 8 (1 agent, NO COMMIT initially)** | ✅ PASS | **96,173** | **31** | ~9.2m | reviewed + merged 2026-06-03 via `f08c1b4` |
+| ↳ T25 Tier-1 multi-sport Best Efforts (running/cycling/swimming/walking) | ✅ | (incl. above) | (incl.) | (incl.) | `dd039b8` |
 
 \*Worktree fan-out durations are wall-clock max-of-4 since they ran in parallel; actual CPU time was the sum.
 

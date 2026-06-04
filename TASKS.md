@@ -43,7 +43,7 @@ Status legend: 🟢 done · 🟡 in-progress · ⚪ pending · 🔵 user step ·
 | # | Task | Status | Notes |
 |---|---|---|---|
 | 22 | T22: vendor a CLI install + link from website (feasibility study) | 🟡 | Sub-agent in worktree investigating: bundle size, npx UX, naming, license, publish flow. Returns ship/defer/do-not-ship recommendation + optional prototype tarball. **No npm publish yet** — user reviews report first. |
-| 25 | T25: Tier-1 multi-sport Best Efforts (cycling/swimming/walking) — synthetic-data prototype | 🟡 | Sliding-window algo is sport-agnostic; only reference distances differ. Synthesized test sessions for each family. **Explicitly not committed** — user testing the synthetic flow before deciding to ship. |
+| 25 | T25: Tier-1 multi-sport Best Efforts (cycling/swimming/walking) | 🟢 | Reviewed locally + shipped. `dd039b8` merged via `f08c1b4`. Running stays the only family with sessions in this user's export, but cycling/swimming/walking now activate when present. T24's "Running only" tooltip removed. 6 new tests; 166 pass + 1 skip. Supersedes T24. |
 
 ## Backlog (no commitments)
 
