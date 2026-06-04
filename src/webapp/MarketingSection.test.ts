@@ -40,6 +40,7 @@ describe('MarketingSection', () => {
     expect(faq).not.toBeNull()
     expect(faq?.textContent).toContain('Why did you build this?')
     expect(faq?.textContent).toContain('Was AI used in building this?')
+    expect(faq?.textContent).toContain('Is there a CLI?')
     expect(faq?.textContent).toContain('Why FIT instead of TCX or GPX?')
 
     // Default AI cost is sourced from Claude Code's /usage panel

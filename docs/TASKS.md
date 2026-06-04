@@ -71,10 +71,11 @@ Status legend: 🟢 done · 🟡 in-progress · ⚪ pending · 🔵 user step ·
 
 ## Artifacts in this repo
 
-- `PLAN.md` — full implementation plan (decomposition, decisions log, orchestration playbook)
-- `RESEARCH.md` — research notes on FIT format, Polar→FIT sport mapping, `@garmin/fitsdk` audit
-- `TASKS.md` — this file
-- `WORK_LOG.md` — per-task agent telemetry (tokens, tool uses, durations) + session cost
+- `docs/PLAN.md` — full implementation plan (decomposition, decisions log, orchestration playbook)
+- `docs/RESEARCH.md` — research notes on FIT format, Polar→FIT sport mapping, `@garmin/fitsdk` audit
+- `docs/TASKS.md` — this file
+- `docs/WORK_LOG.md` — per-task agent telemetry (tokens, tool uses, durations) + session cost
+- `docs/CLI.md` — CLI install + usage instructions (Release tarball, GitHub-direct, local clone)
 - `docs/research/*` — original research artifacts (Strava formats, FIT format + Polar mapping)
 - `scripts/anonymize-fixture.mjs` — reusable PII-stripper for Polar exports
 - `sample/build-sample-zip.mjs` — generates `public/sample-polar-export.zip` from a real export

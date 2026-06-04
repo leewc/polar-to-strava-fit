@@ -59,17 +59,23 @@ Strava runs its own quality checks on uploaded files. Some files may show:
 
 ## Prefer a CLI?
 
-The whole conversion engine is also runnable headless from a clone of this repo:
+The whole conversion engine is also packaged as a standalone Node CLI. Same converter module, byte-identical output.
 
 ```bash
-git clone https://github.com/leewc/polar-to-strava-fit
-cd polar-to-strava-fit
-pnpm install
-pnpm convert YOUR-EXPORT.zip out/
-# 27 .fit files appear in out/, one per activity
+# Pick any release at https://github.com/leewc/polar-to-strava-fit/releases:
+npm install -g https://github.com/leewc/polar-to-strava-fit/releases/download/v0.1.0/polar-to-strava-fit-0.1.0.tgz
+
+polar-to-strava-fit YOUR-EXPORT.zip out/
+# 27 .fit files appear in out/
 ```
 
-The CLI uses the exact same `polarToFit` module that powers the webapp — output is byte-identical. A standalone `npx polar-to-strava-fit` install is on the roadmap (T22).
+Or install directly from `main` (no release needed):
+
+```bash
+npm install -g github:leewc/polar-to-strava-fit
+```
+
+Or clone this repo and run from source — see [`docs/CLI.md`](docs/CLI.md) for full install methods, all three subcommands (`convert` / `inspect` / `validate`), troubleshooting, and a section for AI agents.
 
 ## Development
 
@@ -95,7 +101,7 @@ pnpm inspect FILE.fit     # CLI: pretty-print a FIT file's messages as JSON
 - **`fixtures/`** — three anonymized Polar training-session fixtures for tests.
 - **`public/sample-polar-export.zip`** — the demo ZIP exposed via the "Try with sample data →" button.
 
-See `PLAN.md` for the full implementation plan, decisions log, and per-wave orchestration playbook. See `WORK_LOG.md` for sub-agent telemetry and cumulative cost.
+See [`docs/PLAN.md`](docs/PLAN.md) for the full implementation plan, decisions log, and per-wave orchestration playbook. See [`docs/WORK_LOG.md`](docs/WORK_LOG.md) for sub-agent telemetry and cumulative cost. CLI install + usage instructions are in [`docs/CLI.md`](docs/CLI.md).
 
 ## License
 

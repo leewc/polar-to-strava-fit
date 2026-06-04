@@ -131,7 +131,7 @@
             agent under human direction. Estimated AI usage as of 2026-06-03:
             <strong class="text-foreground">{aiCostUsd}</strong> (read from
             <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs"
-              >WORK_LOG.md</code
+              >docs/WORK_LOG.md</code
             > in the repo).
           </p>
           <p>
@@ -144,6 +144,33 @@
               rel="noreferrer">github.com/leewc/polar-to-strava-fit</a
             >. If that's a dealbreaker, don't use this tool — but you can audit
             every line yourself.
+          </p>
+        </div>
+      </details>
+
+      <details class="group rounded-md border bg-muted/20 p-3">
+        <summary class="cursor-pointer font-medium">
+          Is there a CLI?
+        </summary>
+        <div class="mt-2 space-y-2 text-muted-foreground">
+          <p>
+            Yes. Same converter module, byte-identical output, suitable for
+            scripts and AI agents:
+          </p>
+          <p>
+            <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">npm install -g github:leewc/polar-to-strava-fit</code>
+            (installs from <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">main</code>),
+            or grab a tagged tarball from the
+            <a class="underline" href="https://github.com/leewc/polar-to-strava-fit/releases" target="_blank" rel="noreferrer">Releases page</a>.
+            Then <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">polar-to-strava-fit ZIP OUT</code>.
+          </p>
+          <p>
+            Three subcommands: <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">convert</code>,
+            <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">inspect</code>, and
+            <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">validate</code>.
+            Full docs at
+            <a class="underline" href="https://github.com/leewc/polar-to-strava-fit/blob/main/docs/CLI.md" target="_blank" rel="noreferrer">docs/CLI.md</a>
+            in the repo.
           </p>
         </div>
       </details>
