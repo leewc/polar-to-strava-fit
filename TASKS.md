@@ -42,8 +42,12 @@ Status legend: 🟢 done · 🟡 in-progress · ⚪ pending · 🔵 user step ·
 
 | # | Task | Status | Notes |
 |---|---|---|---|
-| 22 | T22: vendor a CLI install + link from website (feasibility study) | 🟡 | Sub-agent in worktree investigating: bundle size, npx UX, naming, license, publish flow. Returns ship/defer/do-not-ship recommendation + optional prototype tarball. **No npm publish yet** — user reviews report first. |
+| 22 | T22: CLI distribution — feasibility report + prototype merged | 🟢 | Recommendation: **ship**. 22 KB gzipped tarball, 27/27 real sessions converted, FIT license sidestepped via external dep. Merged via `d480970`. **`pnpm publish` pending user decision** on account (personal/scoped) + version. See `docs/research/cli-vending-feasibility.md`. |
 | 25 | T25: Tier-1 multi-sport Best Efforts (cycling/swimming/walking) | 🟢 | Reviewed locally + shipped. `dd039b8` merged via `f08c1b4`. Running stays the only family with sessions in this user's export, but cycling/swimming/walking now activate when present. T24's "Running only" tooltip removed. 6 new tests; 166 pass + 1 skip. Supersedes T24. |
+
+## Pending follow-up (post-T22)
+
+- **`pnpm publish`** — npm registry release. Steps in `docs/research/cli-vending-feasibility.md` §Q6. Needs user decision on account (personal/scoped), version (`0.1.0` recommended), and a one-time `npm login`. Post-publish: short README/marketing edit pointing at `npx polar-to-strava-fit ZIP OUT`.
 
 ## Backlog (no commitments)
 

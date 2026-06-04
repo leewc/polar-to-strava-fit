@@ -57,8 +57,8 @@ use `/usage` in Claude Code for the authoritative session totals.
 | ↳ T23 bundle-size regression fix (dynamic imports) | ✅ | (incl.) | (incl.) | (incl.) | `9edd1d3` |
 | Polish: privacy copy refined post-T23 (main thread) | ✅ | n/a | n/a | n/a | `c541808` |
 | Polish: 2-state theme toggle + branded favicon + T24 tooltip (main) | ✅ | n/a | n/a | n/a | `20044fd` |
-| **Wave 7 (1 agent, in flight)** | 🟡 | TBD | TBD | (started 2026-06-03 ~12:55 PT) | TBD |
-| ↳ T22 CLI vending feasibility (npx polar-to-strava-fit) | 🟡 | (in flight) | (in flight) | (in flight) | TBD |
+| **Wave 7 (1 agent, feasibility study)** | ✅ PASS, recommends ship | **225,152** | **135** | ~6.2h\* | merged 2026-06-03 via `d480970` |
+| ↳ T22 CLI distribution feasibility + prototype | ✅ | (incl. above) | (incl.) | (incl.) | `3e72482` (cherry-picked into `d480970`) |
 | **Wave 8 (1 agent, NO COMMIT initially)** | ✅ PASS | **96,173** | **31** | ~9.2m | reviewed + merged 2026-06-03 via `f08c1b4` |
 | ↳ T25 Tier-1 multi-sport Best Efforts (running/cycling/swimming/walking) | ✅ | (incl. above) | (incl.) | (incl.) | `dd039b8` |
 
