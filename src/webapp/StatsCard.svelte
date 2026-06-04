@@ -1,15 +1,16 @@
 <!--
   StatsCard — post-conversion stats dashboard.
 
-  Renders Strava's "Best Efforts" widget plus simple totals over the user's
-  converted Polar sessions. Mounted between Stage 4 (Validating) and Stage 5
-  (Download) in App.svelte, OUTSIDE the wizard's Card.Roots so it stands out
-  against the stage flow.
+  Renders Strava-style "Best Efforts" widgets per sport family (running,
+  cycling, swimming, walking) plus simple totals over the user's converted
+  Polar sessions. Mounted between Stage 4 (Validating) and Stage 5 (Download)
+  in App.svelte, OUTSIDE the wizard's Card.Roots so it stands out against
+  the stage flow.
 
   Renders nothing when:
     - `stats` is null (computation hasn't run yet), or
-    - the report has no signal at all (no Running session reached any best
-      effort distance AND zero activities — i.e. an empty batch).
+    - the report has no signal at all (no family reached any best-effort
+      distance AND zero activities — i.e. an empty batch).
 
   Format conventions:
     - Best-effort times: "MM:SS" if < 1h; "H:MM:SS" if >= 1h.
@@ -19,25 +20,47 @@
     - Elevation in m AND ft when present.
 -->
 <script lang="ts">
-  import type { StatsReport } from '@core/stats'
+  import type { BestEffort, SportFamily, StatsReport } from '@core/stats'
   import * as Card from '$lib/components/ui/card'
-  import { Activity, Clock, Info, MapPin, Mountain, Trophy } from 'lucide-svelte'
+  import { Activity, Clock, MapPin, Mountain, Trophy } from 'lucide-svelte'
 
   let { stats }: { stats: StatsReport | null } = $props()
 
-  /** True when there's nothing meaningful to render (every BE row is null
-   *  AND zero activities). The `stats === null` short-circuit happens
-   *  outside this derived. */
+  /** Order in which family sections render. Mirrors SPORT_FAMILIES. */
+  const FAMILY_ORDER: SportFamily[] = ['running', 'cycling', 'swimming', 'walking']
+
+  /** True when there's nothing meaningful to render: no family produced any
+   *  best-effort row AND zero activities. The `stats === null` short-circuit
+   *  happens outside this derived. */
   const isEmpty = $derived.by(() => {
     if (!stats) return true
-    const allBestNull = stats.bestEfforts.every((b) => b.bestSeconds === null)
-    return allBestNull && stats.totals.activityCount === 0
+    const anyBest = FAMILY_ORDER.some((f) => {
+      const rows = stats.bestEfforts[f]
+      return rows && rows.some((r) => r.bestSeconds !== null)
+    })
+    return !anyBest && stats.totals.activityCount === 0
   })
 
-  /** Best-effort rows that actually have data. */
-  const populatedBest = $derived.by(() =>
-    stats ? stats.bestEfforts.filter((b) => b.bestSeconds !== null) : [],
-  )
+  /** The list of (family, populated-rows) pairs we'll render — in canonical
+   *  order, with empty families filtered out. Only rows whose bestSeconds is
+   *  non-null make it through. */
+  const populatedFamilies = $derived.by(() => {
+    if (!stats) return [] as Array<{ family: SportFamily; rows: BestEffort[] }>
+    const out: Array<{ family: SportFamily; rows: BestEffort[] }> = []
+    for (const family of FAMILY_ORDER) {
+      const rows = stats.bestEfforts[family]
+      if (!rows) continue
+      const populated = rows.filter((r) => r.bestSeconds !== null)
+      if (populated.length === 0) continue
+      out.push({ family, rows: populated })
+    }
+    return out
+  })
+
+  /** "Running", "Cycling", … — capitalised family name for section headers. */
+  function familyTitle(family: SportFamily): string {
+    return family.charAt(0).toUpperCase() + family.slice(1)
+  }
 
   /** "MM:SS" if < 1h; "H:MM:SS" otherwise. Pure. */
   function fmtBestTime(seconds: number): string {
@@ -80,34 +103,31 @@
       </Card.Title>
     </Card.Header>
     <Card.Content class="space-y-5">
-      <!-- ─── Best Efforts ─── -->
-      {#if populatedBest.length > 0}
+      <!-- ─── Best Efforts (per family) ─── -->
+      {#if populatedFamilies.length > 0}
         <section data-testid="stats-best-efforts">
-          <h3 class="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Best Efforts
-            <!-- T24: explicit (i) hover/title affordance noting that Best
-                 Efforts is currently Running-only. Other sport families
-                 (cycling, swimming, hiking) would each need their own
-                 reference distances; if/when an export contains them, this
-                 expands. -->
-            <span
-              class="cursor-help"
-              title="Best Efforts is computed for Running sessions only. Cycling, swimming, hiking, etc. each have their own reference distances and aren't included here yet."
-              aria-label="Best Efforts is computed for Running sessions only."
+          {#each populatedFamilies as { family, rows }, i (family)}
+            <div
+              data-testid={`stats-best-efforts-${family}`}
+              class={i < populatedFamilies.length - 1 ? 'mb-4' : ''}
             >
-              <Info class="size-3.5" aria-hidden="true" />
-            </span>
-          </h3>
-          <ul class="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
-            {#each populatedBest as row (row.label)}
-              <li class="flex items-baseline justify-between gap-2 border-b border-border/40 py-1">
-                <span class="text-muted-foreground">{row.label}</span>
-                <span class="font-mono font-medium">
-                  {fmtBestTime(row.bestSeconds!)}
-                </span>
-              </li>
-            {/each}
-          </ul>
+              <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {familyTitle(family)} Best Efforts
+              </h3>
+              <ul class="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                {#each rows as row (row.label)}
+                  <li
+                    class="flex items-baseline justify-between gap-2 border-b border-border/40 py-1"
+                  >
+                    <span class="text-muted-foreground">{row.label}</span>
+                    <span class="font-mono font-medium">
+                      {fmtBestTime(row.bestSeconds!)}
+                    </span>
+                  </li>
+                {/each}
+              </ul>
+            </div>
+          {/each}
         </section>
       {/if}
 

@@ -1,21 +1,23 @@
 /**
  * Aggregate stats over a batch of converted Polar sessions.
  *
- * Pure: no DOM, no I/O. Mirrors Strava's "Best Efforts" widget for runs plus
- * a simple totals block (activity count, distance, time, elevation).
+ * Pure: no DOM, no I/O. Mirrors Strava's "Best Efforts" widget across four
+ * sport families (running, cycling, swimming, walking) plus a simple totals
+ * block (activity count, distance, time, elevation).
  *
- * Best-effort algorithm: for each Running session, walk the cumulative
- * DISTANCE sample stream (Polar emits it at 1Hz, in metres) and find the
- * minimum-duration sliding window whose distance delta meets each target.
- * Track the fastest such window across all sessions per target distance.
+ * Best-effort algorithm: for each session whose decoded FIT sport falls into
+ * one of the supported families, walk the cumulative DISTANCE sample stream
+ * (Polar emits it at 1Hz, in metres) and find the minimum-duration sliding
+ * window whose distance delta meets each family-specific reference target.
+ * Track the fastest such window across all sessions per (family, distance).
  *
  * Sessions whose total distance is shorter than a target are skipped for
  * that target. Targets that no session reaches keep `bestSeconds = null`.
  *
- * Totals: count every activity (running + indoor), sum `distanceMeters` and
- * `durationMillis/1000`. Elevation gain is the sum of (max - min) altitude
- * per session that has an ALTITUDE sample stream; `null` when no session
- * has altitude data.
+ * Totals: count every activity (running + cycling + swimming + walking +
+ * indoor + everything else), sum `distanceMeters` and `durationMillis/1000`.
+ * Elevation gain is the sum of (max - min) altitude per session that has an
+ * ALTITUDE sample stream; `null` when no session has altitude data.
  */
 
 import { lookupSport } from './sportMap'
@@ -45,46 +47,105 @@ export interface StatsTotals {
   totalElevationGainMeters: number | null
 }
 
-/** Top-level report returned by `computeStats`. */
+/** Sport families with reference Best Effort distances. */
+export type SportFamily = 'running' | 'cycling' | 'swimming' | 'walking'
+
+/**
+ * Reference distance tables per sport family. Order matters: the UI renders
+ * them top-to-bottom in this order.
+ *
+ * Distances:
+ *   - running: matches Strava's running widget (400m → Half-Marathon)
+ *   - cycling: 5K → century (160.934 km)
+ *   - swimming: 100m → 1500m
+ *   - walking: 1K, 5K, 10K
+ */
+export const SPORT_FAMILIES: Readonly<
+  Record<SportFamily, ReadonlyArray<{ distanceMeters: number; label: string }>>
+> = {
+  running: [
+    { distanceMeters: 400, label: '400m' },
+    { distanceMeters: 805, label: '1/2 mile' },
+    { distanceMeters: 1000, label: '1K' },
+    { distanceMeters: 1609, label: '1 mile' },
+    { distanceMeters: 3219, label: '2 mile' },
+    { distanceMeters: 5000, label: '5K' },
+    { distanceMeters: 10000, label: '10K' },
+    { distanceMeters: 15000, label: '15K' },
+    { distanceMeters: 16093, label: '10 mile' },
+    { distanceMeters: 20000, label: '20K' },
+    { distanceMeters: 21097, label: 'Half-Marathon' },
+  ],
+  cycling: [
+    { distanceMeters: 5000, label: '5K' },
+    { distanceMeters: 10000, label: '10K' },
+    { distanceMeters: 20000, label: '20K' },
+    { distanceMeters: 40000, label: '40K' },
+    { distanceMeters: 80467, label: '50 mile' },
+    { distanceMeters: 100000, label: '100K' },
+    { distanceMeters: 160934, label: 'Century' },
+  ],
+  swimming: [
+    { distanceMeters: 100, label: '100m' },
+    { distanceMeters: 200, label: '200m' },
+    { distanceMeters: 500, label: '500m' },
+    { distanceMeters: 1000, label: '1K' },
+    { distanceMeters: 1500, label: '1500m' },
+  ],
+  walking: [
+    { distanceMeters: 1000, label: '1K' },
+    { distanceMeters: 5000, label: '5K' },
+    { distanceMeters: 10000, label: '10K' },
+  ],
+}
+
+/** Top-level report returned by `computeStats`. Only populated families are
+ *  present in the `bestEfforts` record — empty families are omitted entirely. */
 export interface StatsReport {
-  bestEfforts: BestEffort[]
+  bestEfforts: Partial<Record<SportFamily, BestEffort[]>>
   totals: StatsTotals
 }
 
-/**
- * Best-effort target distances + their human labels. Order matters: the UI
- * renders them top-to-bottom in this order. Mirrors Strava's widget.
- */
-const BEST_EFFORT_TARGETS: ReadonlyArray<{ distanceMeters: number; label: string }> = [
-  { distanceMeters: 400, label: '400m' },
-  { distanceMeters: 805, label: '1/2 mile' },
-  { distanceMeters: 1000, label: '1K' },
-  { distanceMeters: 1609, label: '1 mile' },
-  { distanceMeters: 3219, label: '2 mile' },
-  { distanceMeters: 5000, label: '5K' },
-  { distanceMeters: 10000, label: '10K' },
-  { distanceMeters: 15000, label: '15K' },
-  { distanceMeters: 16093, label: '10 mile' },
-  { distanceMeters: 20000, label: '20K' },
-  { distanceMeters: 21097, label: 'Half-Marathon' },
-]
-
-/**
- * Numeric value of FIT `sport.running`. The sportMap module already resolves
- * Polar Flow labels to this numeric via `@garmin/fitsdk`'s Profile table, so
- * we filter Running-family sessions by comparing the lookup result.
+/* -------------------------------------------------------------------------- *
+ *  Sport-family resolution.
  *
- * Centralised constant from the SDK rather than hard-coding 1 — same pattern
- * the sportMap uses to stay tolerant of future SDK renumberings.
- */
+ *  We resolve the family from the *decoded FIT sport name* (a camelCase
+ *  string like 'running', 'cycling', 'swimming', 'walking', 'hiking') so all
+ *  Polar sub-sports that map into the same FIT sport (e.g. Trail running,
+ *  Treadmill running, Track running → all sport=running) get bucketed
+ *  uniformly. Hiking joins the walking family for Best-Effort purposes.
+ * -------------------------------------------------------------------------- */
+
 import { Profile } from '@garmin/fitsdk'
-const RUNNING_SPORT_NUMERIC: number = (() => {
-  for (const [k, v] of Object.entries(Profile.types.sport)) {
-    if (v === 'running') return Number(k)
+
+/** Decoded FIT sport name (e.g. 'running') → sport family used for stats.
+ *  Returns `undefined` for sports without a Best Efforts table (every other
+ *  family falls through and contributes only to totals). */
+export function sportFamilyFromSport(decodedSport: string | undefined): SportFamily | undefined {
+  switch (decodedSport) {
+    case 'running':
+      return 'running'
+    case 'cycling':
+      return 'cycling'
+    case 'swimming':
+      return 'swimming'
+    case 'walking':
+    case 'hiking':
+      return 'walking'
+    default:
+      return undefined
   }
-  // Should never happen — `running` is in the FIT base profile.
-  throw new Error('stats: FIT Profile does not expose `running` sport enum')
-})()
+}
+
+/** Resolve a session's family by running the same sportMap lookup the
+ *  converter uses, then translating the numeric sport into its decoded name
+ *  via the SDK's Profile table. */
+function resolveSportFamily(session: PolarSession): SportFamily | undefined {
+  const lookup = lookupSport(session.name)
+  if (lookup.isFallback) return undefined
+  const decodedName = (Profile.types.sport as Record<number, string>)[lookup.sport]
+  return sportFamilyFromSport(decodedName)
+}
 
 /**
  * Compute the stats report for a batch of converted sessions. Pure.
@@ -102,30 +163,41 @@ export function computeStats(
     fileName: string
   }>,
 ): StatsReport {
-  // ─── Best efforts (Running only) ─────────────────────────────────────────
-  // Initialise every target with bestSeconds = null; we'll lower it as we
-  // walk each Running session.
-  const best: BestEffort[] = BEST_EFFORT_TARGETS.map((t) => ({
-    distanceMeters: t.distanceMeters,
-    label: t.label,
-    bestSeconds: null,
-    sourceFileName: null,
-  }))
-
+  // ─── Best efforts (bucket by family, run sliding window per family) ──────
+  // Group eligible sessions by family. Families with zero sessions never
+  // appear in the returned record.
+  const byFamily: Partial<Record<SportFamily, Array<{ session: PolarSession; fileName: string }>>> =
+    {}
   for (const { session, fileName } of items) {
-    if (!isRunningSession(session)) continue
-    const distanceStream = pickDistanceStream(session)
-    if (!distanceStream || distanceStream.length < 2) continue
+    const family = resolveSportFamily(session)
+    if (!family) continue
+    if (!byFamily[family]) byFamily[family] = []
+    byFamily[family]!.push({ session, fileName })
+  }
 
-    for (const slot of best) {
-      const target = slot.distanceMeters
-      const seconds = minWindowSeconds(distanceStream, target)
-      if (seconds === null) continue
-      if (slot.bestSeconds === null || seconds < slot.bestSeconds) {
-        slot.bestSeconds = seconds
-        slot.sourceFileName = fileName
+  const bestEfforts: Partial<Record<SportFamily, BestEffort[]>> = {}
+  for (const family of Object.keys(byFamily) as SportFamily[]) {
+    const sessions = byFamily[family]!
+    const targets = SPORT_FAMILIES[family]
+    const slots: BestEffort[] = targets.map((t) => ({
+      distanceMeters: t.distanceMeters,
+      label: t.label,
+      bestSeconds: null,
+      sourceFileName: null,
+    }))
+    for (const { session, fileName } of sessions) {
+      const distanceStream = pickDistanceStream(session)
+      if (!distanceStream || distanceStream.length < 2) continue
+      for (const slot of slots) {
+        const seconds = minWindowSeconds(distanceStream, slot.distanceMeters)
+        if (seconds === null) continue
+        if (slot.bestSeconds === null || seconds < slot.bestSeconds) {
+          slot.bestSeconds = seconds
+          slot.sourceFileName = fileName
+        }
       }
     }
+    bestEfforts[family] = slots
   }
 
   // ─── Totals (every activity) ─────────────────────────────────────────────
@@ -151,7 +223,7 @@ export function computeStats(
   }
 
   return {
-    bestEfforts: best,
+    bestEfforts,
     totals: {
       activityCount,
       totalDistanceMeters,
@@ -162,16 +234,6 @@ export function computeStats(
 }
 
 // ─── Internals ─────────────────────────────────────────────────────────────
-
-/**
- * True for sessions whose Polar Flow label maps to FIT sport `running`. Uses
- * the same lookup the converter uses so Trail/Treadmill/Track running etc.
- * are all included.
- */
-function isRunningSession(session: PolarSession): boolean {
-  const lookup = lookupSport(session.name)
-  return !lookup.isFallback && lookup.sport === RUNNING_SPORT_NUMERIC
-}
 
 /**
  * Find the cumulative DISTANCE stream from the session's first exercise.
