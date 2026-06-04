@@ -16,12 +16,12 @@
 
   /**
    * AI usage cost surfaced in the FAQ. Sourced from Claude Code's `/usage`
-   * panel as of 2026-06-03 ($229.82 cumulative across the entire project).
+   * panel as of 2026-06-03 ($354.39 cumulative across the entire project).
    * Kept as a prop with a baked-in default so the value is provable from
    * source without runtime fetches. Update by hand when /usage is
    * refreshed.
    */
-  let { aiCostUsd = '~$230' }: { aiCostUsd?: string } = $props()
+  let { aiCostUsd = '~$355' }: { aiCostUsd?: string } = $props()
 </script>
 
 <section
@@ -126,17 +126,20 @@
         </summary>
         <div class="mt-2 space-y-2 text-muted-foreground">
           <p>
-            Yes — substantially. The conversion code, tests, web UI, deploy
-            workflow, and this FAQ entry were written by a Claude (Anthropic)
-            agent under human direction. Estimated AI usage as of 2026-06-03:
-            <strong class="text-foreground">{aiCostUsd}</strong> (read from
-            <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs"
+            Yes — entirely. The conversion code, tests, web UI, deploy
+            workflow, the CLI bundle, and this FAQ entry were all written by
+            a Claude (Anthropic) agent under human direction. The maintainer
+            never opened a code editor for any of it; every change was made
+            via Claude Code through tool calls. Cumulative AI usage as of
+            2026-06-03: <strong class="text-foreground">{aiCostUsd}</strong> —
+            see <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs"
               >docs/WORK_LOG.md</code
-            > in the repo).
+            > for the per-task token / tool-use / cost breakdown.
           </p>
           <p>
-            The full development log — every commit, plan, sub-agent telemetry
-            entry, and decision trade-off — lives at
+            The full development log — every commit, the plan that drove the
+            agent fan-outs, sub-agent telemetry, and a decisions log capturing
+            every nontrivial trade-off — lives at
             <a
               class="underline"
               href="https://github.com/leewc/polar-to-strava-fit"

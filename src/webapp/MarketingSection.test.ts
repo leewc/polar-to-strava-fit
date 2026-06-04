@@ -44,8 +44,8 @@ describe('MarketingSection', () => {
     expect(faq?.textContent).toContain('Why FIT instead of TCX or GPX?')
 
     // Default AI cost is sourced from Claude Code's /usage panel
-    // ($229.82 as of 2026-06-03).
-    expect(faq?.textContent).toContain('~$230')
+    // ($354.39 as of 2026-06-03).
+    expect(faq?.textContent).toContain('~$355')
 
     // Footer with repo link.
     const footer = target.querySelector('[data-testid="marketing-footer"]')
@@ -64,6 +64,6 @@ describe('MarketingSection', () => {
 
     const faq = target.querySelector('[data-testid="marketing-faq"]')
     expect(faq?.textContent).toContain('$123.45')
-    expect(faq?.textContent).not.toContain('~$60')
+    expect(faq?.textContent).not.toContain('~$355')
   })
 })

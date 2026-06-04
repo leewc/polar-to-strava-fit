@@ -99,46 +99,55 @@ use `/usage` in Claude Code for the authoritative session totals.
 - **Five user-reported bugs caught & fixed during testing** (in order): Polar km/h vs FIT m/s speed (T6.5 → `36542eb`); GPS teleport in source data → spawned T6.6 detection; Svelte 5 effect-loop in URL revoker (`5fe8122`); empty-zip dead-end (`04a6432` + T18 `300f8ff`); sample-zip URL resolution (T19 `6fa03f4`).
 - **Worktree-isolation lessons.** Wave 2's 3-way shadcn-install fight resolved by single-agent shadcn install in T17 before subsequent waves. Wave 3b's two App.svelte edits in different regions auto-merged with one minor manual conflict resolution. Wave 4's stats agent rebased cleanly because main hadn't moved into its file regions.
 
-## Session totals (from `/usage` after T5 commit)
+## Session totals — final (from `/usage`, 2026-06-03)
 
-Captured 2026-06-02 immediately after committing T5 + tooling polish.
-This is the authoritative number — sub-agent token counts above don't
-account for caching or main-thread context overhead.
+Captured at the end of the project (after T22 CLI distribution +
+docs reorganization). This is the authoritative number — sub-agent
+token counts above don't account for caching or main-thread context
+overhead.
 
 | Metric | Value |
 |---|---|
-| Total cost | **$60.53** |
-| API duration | 1h 17m 33s |
-| Wall-clock duration | 23h 51m 29s |
-| Code changes | +3127 / −720 lines |
+| Total cost | **$354.39** |
+| API duration | 4h 40m 38s |
+| Wall-clock duration | 2d 18h 52m |
+| Code changes | +12,299 / −1,616 lines |
 
-**By model:**
+### Earlier snapshot (T5 commit, 2026-06-02)
+
+| Metric | Value |
+|---|---|
+| Total cost (then) | $60.53 |
+| Code changes (then) | +3,127 / −720 lines |
+
+So the back half of the project — wave 2 fan-out through T22 + docs —
+came out to about **$293** (cost) and **+9,172 lines** (code). Most
+of the spend was in the wave-1 → wave-7 sub-agent fan-outs; main-thread
+integration is small by comparison.
+
+**By model (final):**
 
 | Model | Input | Output | Cache read | Cache write | Cost |
 |---|---:|---:|---:|---:|---:|
-| claude-opus-4-7 | 519.4k | 244.2k | 62.5m | 3.1m | $59.47 |
+| claude-opus-4-7 | 523.4k | 851.4k | 374.8m | 22.7m | $353.33 |
 | claude-opus-4-6 | 529 | 11.5k | 382.7k | 70.2k | $0.92 |
 | claude-haiku-4-5 | 31 | 1.0k | 395.7k | 73.2k | $0.14 |
 
-Opus 4.7 dominates ($59.47 of $60.53 = 98%) — that's the main-thread model
-plus most sub-agent dispatches. Haiku 4.5 ($0.14) is structured-output
-classification on the failed worktree workflow attempt + similar small calls.
-Cache-read tokens (62.5m on Opus 4.7) reflect heavy reuse of PLAN.md /
-RESEARCH.md across sub-agents; without caching the cost would be roughly
-3–5× higher.
+Opus 4.7 dominates ($353.33 of $354.39 = 99.7%) — that's the main-thread
+model plus every sub-agent dispatch. Haiku 4.5 ($0.14) is structured-output
+classification on early failed workflow attempts. Cache-read tokens
+(374.8m on Opus 4.7) reflect heavy reuse of PLAN.md / RESEARCH.md /
+the source tree across sub-agents — without caching the cost would
+have been roughly 3–5× higher.
 
-**Phases 0–2 (scaffold + Phase 1 + T5):** ~$60 total. Estimated remaining
-spend through T6, T7-B, Phase 4 fan-out, and deploy: another ~$30–60
-depending on iteration loops.
-
-> Note: this $60.53 number is an **early-stage** snapshot, captured right
-> after T5. Subsequent waves (T6 through T20) added significant
-> sub-agent work. A current-state recapture from `/usage` would be more
-> accurate; until that happens the table above understates the total.
-> Rough estimate using sub-agent token totals (~1.42M tokens at Opus 4.7
-> rates with 80–90% cache hit) suggests cumulative cost in the
-> $90–$140 range as of the wave-5 dispatch. **The user can re-run
-> `/usage` for the authoritative current figure.**
+**Earlier projection vs reality.** The early-stage snapshot at T5
+estimated remaining spend at $30–60. Reality came in at ~$293 for the
+back half. The delta tracks the wave-2/3a/3b/4/6/7 fan-outs (each one
+spawns 1–4 worktree-isolated sub-agents that each re-read PLAN.md and
+the relevant source files), plus a healthy amount of mid-flight
+diagnosis (5 user-reported bugs caught during real-world Strava
+testing, each with a fix-+-test loop), plus T22's deep CLI feasibility
+investigation alone (225k tokens / 135 tool uses).
 
 ## Cost notes
 

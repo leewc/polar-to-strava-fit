@@ -2,7 +2,7 @@
 // Build a small, fully-anonymized Polar bulk-export ZIP for the public demo.
 //
 // Usage:
-//   node sample/build-sample-zip.mjs
+//   node scripts/build-sample-zip.mjs
 //   pnpm build:sample              # the npm-script alias
 //
 // What this does

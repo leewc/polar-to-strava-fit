@@ -44,7 +44,7 @@
     "convert": "tsx src/cli/convert.ts",
     "inspect": "tsx src/cli/inspect.ts",
     "validate": "tsx src/cli/validate.ts",
-    "build:sample": "node sample/build-sample-zip.mjs",
+    "build:sample": "node scripts/build-sample-zip.mjs",
     "prepublishOnly": "pnpm build:cli"
   },
   "dependencies": {

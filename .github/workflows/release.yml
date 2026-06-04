@@ -1,0 +1,64 @@
+name: Release CLI tarball
+
+# Triggers on tags like v0.1.0 / v1.2.3. Builds the CLI bin, packs an
+# npm tarball, and attaches it to the GitHub Release for that tag.
+#
+# Manual flow on your end:
+#   1. Bump the version in package.json (e.g. `pnpm version 0.1.0`).
+#      That command creates the v0.1.0 commit + tag locally.
+#   2. `git push --follow-tags` to push the commit AND the tag.
+#   3. This workflow runs, builds the bin, creates a Release on GitHub
+#      with the tarball attached, and surfaces it under
+#      https://github.com/leewc/polar-to-strava-fit/releases.
+#
+# The tarball download URL becomes
+#   https://github.com/leewc/polar-to-strava-fit/releases/download/<tag>/polar-to-strava-fit-<version>.tgz
+# which is the install URL documented in docs/CLI.md.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write  # needed to create the release + upload assets
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Re-runs the same gates the deploy workflow runs so a tag never
+      # ships a broken build.
+      - run: pnpm test
+      - run: pnpm check
+
+      # Build the bin + pack the npm tarball. `pnpm pack` produces
+      # `polar-to-strava-fit-<version>.tgz` named from package.json.
+      - run: pnpm build:cli
+      - id: pack
+        run: |
+          TARBALL="$(pnpm pack | tail -n 1)"
+          echo "tarball=${TARBALL}" >> "$GITHUB_OUTPUT"
+          ls -la "${TARBALL}"
+
+      # Create the GitHub Release for this tag and upload the tarball.
+      # softprops/action-gh-release auto-creates the release if it doesn't
+      # exist, derives the title from the tag, and writes a default body.
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.pack.outputs.tarball }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true

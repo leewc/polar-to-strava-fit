@@ -78,7 +78,7 @@ Status legend: 🟢 done · 🟡 in-progress · ⚪ pending · 🔵 user step ·
 - `docs/CLI.md` — CLI install + usage instructions (Release tarball, GitHub-direct, local clone)
 - `docs/research/*` — original research artifacts (Strava formats, FIT format + Polar mapping)
 - `scripts/anonymize-fixture.mjs` — reusable PII-stripper for Polar exports
-- `sample/build-sample-zip.mjs` — generates `public/sample-polar-export.zip` from a real export
+- `scripts/build-sample-zip.mjs` — generates `public/sample-polar-export.zip` from a real export
 - `fixtures/*.json` — three anonymized training-session fixtures (one large GPS, one tiny indoor, one mid-size GPS with a known teleport)
 - `public/sample-polar-export.zip` — committed; the "Try with sample data" demo file (337KB, 7 sessions)
 - `src/core/*` — pure conversion logic (browser- and Node-portable): types, parsePolarJson (JSON5 + reviver), polarToFit, sportMap (171 mappings), time, stats
